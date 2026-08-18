@@ -569,6 +569,25 @@ body.mode-basic .asset-chip.is-star { background: #F1F1EF; border-color: #C4C4BF
 body.mode-basic .asset-chip.is-flip { background: #EFF3EB; border-color: #BFCDB4; }
 body.mode-basic .asset-group-head::after { background: #DCDCD9; }
 
+/* 図解（DIAGRAMS）— トピック解説直後の自作の構造図 */
+.figure-title {
+  font-size: 13px; font-weight: 700; color: #9B3B2E;
+  display: flex; align-items: center; gap: 6px; margin-bottom: 2px;
+}
+.figure-title::before {
+  content: "図"; font-size: 10px; font-weight: 700;
+  background: #9B3B2E; color: #F8F2E3; padding: 1px 5px; border-radius: 4px;
+}
+.figure-sub { font-size: 11px; color: #8A8270; margin-bottom: 12px; }
+.figure-svg { width: 100%; overflow-x: auto; }
+.figure-svg svg { width: 100%; height: auto; display: block; }
+.figure-cap {
+  font-size: 12px; color: #5B5346; line-height: 1.7;
+  margin-top: 12px; padding-top: 10px; border-top: 1px dashed #E0D4B4;
+}
+.figure-cap b { color: #9B3B2E; }
+body.mode-basic .figure-cap { border-top-color: #D6D6D2; }
+
 /* 答えが「／」区切りの列挙のとき、項目ごとに数えられるチェックリストで表示する */
 .answer-check-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
 .answer-check-count { font-size: 13px; color: #8A8270; }
@@ -4473,6 +4492,614 @@ const HINTS = {
   '2026年に登録された、デンマークの魚類化石で評価された自然遺産は？': 'デンマークも2025年ムンス・クリント→2026年リムフィヨルドと2年連続の自然遺産。',
   '2026年に緊急的登録推薦でレバノンが登録した城塞群は？': 'レバノンはこの回で「アメル山の城塞群」が緊急登録＋危機遺産、既存の「ティール」も危機遺産に。1国で2件が同時に危機。',
 };
+// ============ 図解（DIAGRAMS） ============
+// トピック解説の直後に、構造を説明する自作SVG図を描画する。
+// 公式テキストの写真・図版は著作物なので使えない代わりに、
+// 「位置関係・階層・時系列・分類」を線と文字で表した概念図を置く。
+//
+// データ形式:
+//   'カテゴリ|トピック': [
+//     { id:'一意なID', title:'図タイトル', sub:'副題(任意)', svg:'<svg …>…</svg>', cap:'図の下の一文(任意)' },
+//   ]
+// 1トピックに複数図を持てる（配列）。描画は app.js の renderDiagram() が担当。
+//
+// SVGの約束:
+//   - viewBox を必ず持たせ、width/height はCSS側(.figure-svg)で100%にする
+//   - 配色はアプリ本体に合わせる: レンガ #9B3B2E / 金 #A8823C / 濃紺文字 #1F2A3D /
+//     地 #F3EAD3・#FBF7EC / 罫線 #D8C89E / 補助文字 #5B5346・#8A8270
+//   - 文字は <text> で持つ（フォント依存を減らすため font-size は px 指定）
+//   - role="img" と aria-label を付ける
+
+const DIAGRAMS = {
+
+  // ===== A1 伽藍配置（法隆寺式／法起寺式）=====
+  '日本_文化遺産|法隆寺': [
+    {
+      id: 'garan',
+      title: '伽藍配置の対比',
+      sub: '塔と金堂の東西の位置で名称が変わる',
+      svg: `<svg viewBox="0 0 560 250" role="img" aria-label="法隆寺式と法起寺式の伽藍配置の対比図">
+        <text x="280" y="14" text-anchor="middle" font-size="11" fill="#8A8270">← 西　　　　　　　　　　北 ↑　　　　　　　　　　東 →</text>
+        <g transform="translate(20,30)">
+          <rect x="0" y="0" width="240" height="184" rx="8" fill="#F3EAD3" stroke="#D8C89E" stroke-width="1.5"/>
+          <text x="120" y="-6" text-anchor="middle" font-size="14" font-weight="700" fill="#1F2A3D">法隆寺式</text>
+          <rect x="26" y="46" width="188" height="104" rx="4" fill="none" stroke="#A8823C" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <rect x="70" y="22" width="100" height="20" rx="3" fill="#EDE3C6" stroke="#C9B77F"/>
+          <text x="120" y="36" text-anchor="middle" font-size="10" fill="#5B5346">講堂</text>
+          <rect x="44" y="74" width="70" height="48" rx="3" fill="#9B3B2E"/>
+          <text x="79" y="103" text-anchor="middle" font-size="13" font-weight="700" fill="#F8F2E3">塔</text>
+          <text x="79" y="140" text-anchor="middle" font-size="9" fill="#9B3B2E" font-weight="700">西</text>
+          <rect x="126" y="74" width="70" height="48" rx="3" fill="#A8823C"/>
+          <text x="161" y="103" text-anchor="middle" font-size="13" font-weight="700" fill="#F8F2E3">金堂</text>
+          <text x="161" y="140" text-anchor="middle" font-size="9" fill="#5B5346" font-weight="700">東</text>
+          <rect x="90" y="156" width="60" height="14" rx="3" fill="#EDE3C6" stroke="#C9B77F"/>
+          <text x="120" y="167" text-anchor="middle" font-size="9" fill="#5B5346">中門</text>
+        </g>
+        <g transform="translate(300,30)">
+          <rect x="0" y="0" width="240" height="184" rx="8" fill="#F3EAD3" stroke="#D8C89E" stroke-width="1.5"/>
+          <text x="120" y="-6" text-anchor="middle" font-size="14" font-weight="700" fill="#1F2A3D">法起寺式</text>
+          <rect x="26" y="46" width="188" height="104" rx="4" fill="none" stroke="#A8823C" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <rect x="70" y="22" width="100" height="20" rx="3" fill="#EDE3C6" stroke="#C9B77F"/>
+          <text x="120" y="36" text-anchor="middle" font-size="10" fill="#5B5346">講堂</text>
+          <rect x="44" y="74" width="70" height="48" rx="3" fill="#A8823C"/>
+          <text x="79" y="103" text-anchor="middle" font-size="13" font-weight="700" fill="#F8F2E3">金堂</text>
+          <text x="79" y="140" text-anchor="middle" font-size="9" fill="#5B5346" font-weight="700">西</text>
+          <rect x="126" y="74" width="70" height="48" rx="3" fill="#9B3B2E"/>
+          <text x="161" y="103" text-anchor="middle" font-size="13" font-weight="700" fill="#F8F2E3">塔</text>
+          <text x="161" y="140" text-anchor="middle" font-size="9" fill="#9B3B2E" font-weight="700">東</text>
+          <rect x="90" y="156" width="60" height="14" rx="3" fill="#EDE3C6" stroke="#C9B77F"/>
+          <text x="120" y="167" text-anchor="middle" font-size="9" fill="#5B5346">中門</text>
+        </g>
+      </svg>`,
+      cap: '塔＝レンガ色／金堂＝金色。<b>塔が西・金堂が東</b>なら法隆寺式、逆なら法起寺式。',
+    },
+    {
+      id: 'garan-types',
+      title: '伽藍配置の型の変遷',
+      sub: '塔（レンガ色）が中心から外へ移り、やがて2塔になる',
+      svg: `<svg viewBox="0 0 560 170" role="img" aria-label="飛鳥寺式・四天王寺式・法隆寺式・薬師寺式の伽藍配置の変遷図">
+        <g text-anchor="middle">
+          <rect x="10" y="20" width="128" height="118" rx="6" fill="#F3EAD3" stroke="#D8C89E"/>
+          <text x="74" y="15" font-size="11.5" font-weight="700" fill="#1F2A3D">飛鳥寺式</text>
+          <rect x="60" y="66" width="28" height="28" fill="#9B3B2E"/>
+          <rect x="60" y="34" width="28" height="20" fill="#A8823C"/><rect x="30" y="66" width="24" height="24" fill="#A8823C"/><rect x="94" y="66" width="24" height="24" fill="#A8823C"/>
+          <text x="74" y="128" font-size="9" fill="#8A8270">1塔3金堂</text>
+        </g>
+        <g text-anchor="middle">
+          <rect x="146" y="20" width="128" height="118" rx="6" fill="#F3EAD3" stroke="#D8C89E"/>
+          <text x="210" y="15" font-size="11.5" font-weight="700" fill="#1F2A3D">四天王寺式</text>
+          <rect x="196" y="34" width="28" height="16" fill="#EDE3C6" stroke="#C9B77F"/>
+          <rect x="196" y="56" width="28" height="24" fill="#9B3B2E"/>
+          <rect x="196" y="86" width="28" height="20" fill="#A8823C"/>
+          <rect x="188" y="110" width="44" height="14" fill="#EDE3C6" stroke="#C9B77F"/>
+          <text x="210" y="134" font-size="9" fill="#8A8270">南北一直線</text>
+        </g>
+        <g text-anchor="middle">
+          <rect x="282" y="20" width="128" height="118" rx="6" fill="#F3EAD3" stroke="#D8C89E"/>
+          <text x="346" y="15" font-size="11.5" font-weight="700" fill="#1F2A3D">法隆寺式</text>
+          <rect x="308" y="60" width="30" height="30" fill="#9B3B2E"/>
+          <rect x="354" y="60" width="30" height="30" fill="#A8823C"/>
+          <text x="346" y="128" font-size="9" fill="#8A8270">塔と金堂が横並び</text>
+        </g>
+        <g text-anchor="middle">
+          <rect x="418" y="20" width="132" height="118" rx="6" fill="#F3EAD3" stroke="#D8C89E"/>
+          <text x="484" y="15" font-size="11.5" font-weight="700" fill="#1F2A3D">薬師寺式</text>
+          <rect x="468" y="44" width="32" height="22" fill="#A8823C"/>
+          <rect x="442" y="80" width="24" height="24" fill="#9B3B2E"/><rect x="502" y="80" width="24" height="24" fill="#9B3B2E"/>
+          <text x="484" y="128" font-size="9" fill="#8A8270">金堂の前に東西2塔</text>
+        </g>
+      </svg>`,
+      cap: '塔は<b>中心（飛鳥寺）→列（四天王寺）→横並び（法隆寺）→2塔（薬師寺）</b>へと位置を変えた。',
+    },
+  ],
+
+  // ===== D1 登録基準(i)〜(x)の関係図 =====
+  '基礎知識|登録基準': [
+    {
+      id: 'criteria',
+      title: '登録基準(i)〜(x)の全体像',
+      sub: '(i)〜(vi)＝文化遺産／(vii)〜(x)＝自然遺産。両方を満たすと複合遺産',
+      svg: `<svg viewBox="0 0 560 300" role="img" aria-label="世界遺産の登録基準10項目の分類図">
+        <text x="140" y="16" text-anchor="middle" font-size="13" font-weight="700" fill="#9B3B2E">文化遺産　(i)〜(vi)</text>
+        <text x="420" y="16" text-anchor="middle" font-size="13" font-weight="700" fill="#A8823C">自然遺産　(vii)〜(x)</text>
+        <g font-size="12" fill="#3A342A">
+          <g transform="translate(10,26)">
+            <rect x="0" y="0" width="270" height="34" rx="5" fill="#F6ECD9"/><rect x="0" y="0" width="5" height="34" rx="2" fill="#9B3B2E"/>
+            <text x="16" y="15" font-weight="700" fill="#9B3B2E">(i)</text><text x="52" y="15">人類の創造的才能を示す傑作</text>
+            <text x="16" y="29" font-size="10" fill="#8A8270">タージ・マハル、シドニー・オペラハウス</text>
+          </g>
+          <g transform="translate(10,64)">
+            <rect x="0" y="0" width="270" height="34" rx="5" fill="#F6ECD9"/><rect x="0" y="0" width="5" height="34" rx="2" fill="#9B3B2E"/>
+            <text x="16" y="15" font-weight="700" fill="#9B3B2E">(ii)</text><text x="52" y="15">価値観の交流を示す</text>
+            <text x="16" y="29" font-size="10" fill="#8A8270">建築・技術・都市計画の発展への影響</text>
+          </g>
+          <g transform="translate(10,102)">
+            <rect x="0" y="0" width="270" height="34" rx="5" fill="#F6ECD9"/><rect x="0" y="0" width="5" height="34" rx="2" fill="#9B3B2E"/>
+            <text x="16" y="15" font-weight="700" fill="#9B3B2E">(iii)</text><text x="52" y="15">文化的伝統・文明の証拠</text>
+            <text x="16" y="29" font-size="10" fill="#8A8270">現存または消滅した文明の稀な証拠</text>
+          </g>
+          <g transform="translate(10,140)">
+            <rect x="0" y="0" width="270" height="34" rx="5" fill="#F6ECD9"/><rect x="0" y="0" width="5" height="34" rx="2" fill="#9B3B2E"/>
+            <text x="16" y="15" font-weight="700" fill="#9B3B2E">(iv)</text><text x="52" y="15">建築・技術・景観の顕著な見本</text>
+            <text x="16" y="29" font-size="10" fill="#8A8270">歴史上の重要な時代を例証</text>
+          </g>
+          <g transform="translate(10,178)">
+            <rect x="0" y="0" width="270" height="34" rx="5" fill="#F6ECD9"/><rect x="0" y="0" width="5" height="34" rx="2" fill="#9B3B2E"/>
+            <text x="16" y="15" font-weight="700" fill="#9B3B2E">(v)</text><text x="52" y="15">伝統的集落・土地利用の見本</text>
+            <text x="16" y="29" font-size="10" fill="#8A8270">不可逆な変化で存続が危ういもの</text>
+          </g>
+          <g transform="translate(10,216)">
+            <rect x="0" y="0" width="270" height="42" rx="5" fill="#F1E2CC"/><rect x="0" y="0" width="5" height="42" rx="2" fill="#9B3B2E"/>
+            <text x="16" y="15" font-weight="700" fill="#9B3B2E">(vi)</text><text x="52" y="15">出来事・信仰・思想との関連</text>
+            <text x="16" y="31" font-size="10" fill="#9B3B2E" font-weight="700">※原則ほかの基準との併用が必要（単独登録は例外的）</text>
+          </g>
+          <g transform="translate(290,26)">
+            <rect x="0" y="0" width="260" height="34" rx="5" fill="#F4EAD2"/><rect x="0" y="0" width="5" height="34" rx="2" fill="#A8823C"/>
+            <text x="16" y="15" font-weight="700" fill="#A8823C">(vii)</text><text x="56" y="15">自然美・美的重要性</text>
+            <text x="16" y="29" font-size="10" fill="#8A8270">最上級の自然現象・景観美</text>
+          </g>
+          <g transform="translate(290,64)">
+            <rect x="0" y="0" width="260" height="34" rx="5" fill="#F4EAD2"/><rect x="0" y="0" width="5" height="34" rx="2" fill="#A8823C"/>
+            <text x="16" y="15" font-weight="700" fill="#A8823C">(viii)</text><text x="60" y="15">地球の歴史の記録</text>
+            <text x="16" y="29" font-size="10" fill="#8A8270">生命の記録・地形形成の地質過程</text>
+          </g>
+          <g transform="translate(290,102)">
+            <rect x="0" y="0" width="260" height="34" rx="5" fill="#F4EAD2"/><rect x="0" y="0" width="5" height="34" rx="2" fill="#A8823C"/>
+            <text x="16" y="15" font-weight="700" fill="#A8823C">(ix)</text><text x="56" y="15">生態系・生物進化の過程</text>
+            <text x="16" y="29" font-size="10" fill="#8A8270">進行中の生態学的・生物学的過程</text>
+          </g>
+          <g transform="translate(290,140)">
+            <rect x="0" y="0" width="260" height="34" rx="5" fill="#F4EAD2"/><rect x="0" y="0" width="5" height="34" rx="2" fill="#A8823C"/>
+            <text x="16" y="15" font-weight="700" fill="#A8823C">(x)</text><text x="56" y="15">生物多様性・絶滅危惧種</text>
+            <text x="16" y="29" font-size="10" fill="#8A8270">生息域内保全に最も重要な生息地</text>
+          </g>
+          <g transform="translate(290,190)">
+            <rect x="0" y="0" width="260" height="68" rx="5" fill="#EFEADD"/>
+            <text x="14" y="18" font-size="11" font-weight="700" fill="#5B5346">複合遺産</text>
+            <text x="14" y="36" font-size="10.5" fill="#5B5346">文化(i-vi)と自然(vii-x)を</text>
+            <text x="14" y="52" font-size="10.5" fill="#5B5346">両方満たすと複合遺産になる</text>
+          </g>
+        </g>
+      </svg>`,
+      cap: '文化6・自然4の計10項目。<b>(vi)は原則ほかの基準と併用</b>、両分野をまたぐと<b>複合遺産</b>。',
+    },
+  ],
+
+  // ===== C1 沖ノ島の祭祀形態の変遷 =====
+  '日本_文化遺産|宗像沖ノ島': [
+    {
+      id: 'okinoshima',
+      title: '沖ノ島の祭祀形態の変遷',
+      sub: '祭祀の場が巨岩の上から開けた場所へ、約500年かけて移り変わった',
+      svg: `<svg viewBox="0 0 560 210" role="img" aria-label="沖ノ島の祭祀形態が岩上から露天へ変遷する図">
+        <line x1="30" y1="150" x2="530" y2="150" stroke="#D8C89E" stroke-width="2"/>
+        <g text-anchor="middle">
+          <g transform="translate(30,40)">
+            <rect x="0" y="0" width="110" height="70" rx="6" fill="#F3EAD3" stroke="#D8C89E"/>
+            <path d="M20 55 L40 30 L70 30 L90 55 Z" fill="#B9A97F"/>
+            <circle cx="55" cy="26" r="6" fill="#9B3B2E"/>
+            <text x="55" y="90" font-size="12" font-weight="700" fill="#1F2A3D">岩上祭祀</text>
+            <text x="55" y="105" font-size="10" fill="#8A8270">巨岩の上</text>
+          </g>
+          <text x="152" y="78" font-size="16" fill="#A8823C">→</text>
+          <g transform="translate(168,40)">
+            <rect x="0" y="0" width="110" height="70" rx="6" fill="#F3EAD3" stroke="#D8C89E"/>
+            <path d="M18 55 L38 28 L72 28 L92 55 Z" fill="#B9A97F"/>
+            <circle cx="40" cy="46" r="6" fill="#9B3B2E"/>
+            <text x="55" y="90" font-size="12" font-weight="700" fill="#1F2A3D">岩陰祭祀</text>
+            <text x="55" y="105" font-size="10" fill="#8A8270">岩のかげ</text>
+          </g>
+          <text x="290" y="78" font-size="16" fill="#A8823C">→</text>
+          <g transform="translate(306,40)">
+            <rect x="0" y="0" width="118" height="70" rx="6" fill="#F3EAD3" stroke="#D8C89E"/>
+            <path d="M20 55 L40 32 L74 32 L94 55 Z" fill="#B9A97F"/>
+            <circle cx="70" cy="52" r="6" fill="#9B3B2E"/>
+            <text x="59" y="90" font-size="11.5" font-weight="700" fill="#1F2A3D">半岩陰・半露天</text>
+            <text x="59" y="105" font-size="10" fill="#8A8270">岩から離れ始める</text>
+          </g>
+          <text x="436" y="78" font-size="16" fill="#A8823C">→</text>
+          <g transform="translate(452,40)">
+            <rect x="0" y="0" width="90" height="70" rx="6" fill="#F3EAD3" stroke="#D8C89E"/>
+            <circle cx="45" cy="50" r="6" fill="#9B3B2E"/>
+            <line x1="20" y1="60" x2="70" y2="60" stroke="#B9A97F" stroke-width="3"/>
+            <text x="45" y="90" font-size="12" font-weight="700" fill="#1F2A3D">露天祭祀</text>
+            <text x="45" y="105" font-size="10" fill="#8A8270">開けた場所</text>
+          </g>
+        </g>
+        <g font-size="10" fill="#8A8270" text-anchor="middle">
+          <text x="85" y="168">4世紀後半〜</text>
+          <text x="223" y="168">5世紀後半〜</text>
+          <text x="365" y="168">7世紀後半〜</text>
+          <text x="497" y="168">8〜9世紀末</text>
+        </g>
+      </svg>`,
+      cap: '赤丸＝祭祀の位置。<b>岩上→岩陰→半岩陰半露天→露天</b>と、岩から離れ開けた場所へ移った。',
+    },
+  ],
+
+  // ===== B1 ボロブドゥールの三界 =====
+  'アジア|宗教・信仰関連遺産（仏教）': [
+    {
+      id: 'borobudur',
+      title: 'ボロブドゥールの三界',
+      sub: '仏教の宇宙観を垂直に積み上げた構造。下から上へ悟りに近づく',
+      svg: `<svg viewBox="0 0 560 240" role="img" aria-label="ボロブドゥールが欲界・色界・無色界の三層で構成される断面図">
+        <g>
+          <circle cx="280" cy="44" r="14" fill="#A8823C"/>
+          <path d="M120 200 L440 200 L400 150 L160 150 Z" fill="#EBD9B4" stroke="#C9B77F"/>
+          <path d="M160 150 L400 150 L372 100 L188 100 Z" fill="#E4CE9F" stroke="#C9B77F"/>
+          <path d="M188 100 L372 100 L344 62 L216 62 Z" fill="#DCC186" stroke="#C9B77F"/>
+          <circle cx="240" cy="80" r="7" fill="#fff" stroke="#B79B5E"/>
+          <circle cx="280" cy="80" r="7" fill="#fff" stroke="#B79B5E"/>
+          <circle cx="320" cy="80" r="7" fill="#fff" stroke="#B79B5E"/>
+        </g>
+        <g font-size="12">
+          <text x="452" y="46" fill="#1F2A3D" font-weight="700">無色界</text>
+          <text x="452" y="62" font-size="10" fill="#8A8270">円壇・72基のストゥーパ</text>
+          <text x="452" y="108" fill="#1F2A3D" font-weight="700">色界</text>
+          <text x="452" y="124" font-size="10" fill="#8A8270">方形の回廊・レリーフ</text>
+          <text x="452" y="176" fill="#1F2A3D" font-weight="700">欲界</text>
+          <text x="452" y="192" font-size="10" fill="#8A8270">基壇・因果応報のレリーフ</text>
+        </g>
+        <line x1="294" y1="44" x2="446" y2="42" stroke="#D8C89E" stroke-dasharray="3 2"/>
+        <line x1="330" y1="80" x2="446" y2="104" stroke="#D8C89E" stroke-dasharray="3 2"/>
+        <line x1="360" y1="125" x2="446" y2="172" stroke="#D8C89E" stroke-dasharray="3 2"/>
+        <text x="130" y="228" font-size="10.5" fill="#8A8270">下＝欲界（現世の欲望）　→　上＝無色界（悟り・涅槃）へ向かって昇る</text>
+      </svg>`,
+      cap: '下から<b>欲界→色界→無色界</b>。頂上の大ストゥーパへ昇るほど悟りに近づく三層構造。',
+    },
+  ],
+
+  // ===== C4 世界遺産委員会の審議 4区分 =====
+  '基礎知識|登録の流れ': [
+    {
+      id: 'decision4',
+      title: '委員会の審議＝4つの決議',
+      sub: '諮問機関の勧告を受け、委員会が4つのいずれかを決める',
+      svg: `<svg viewBox="0 0 560 250" role="img" aria-label="世界遺産委員会の審議による登録・情報照会・登録延期・不登録の4区分図">
+        <rect x="200" y="8" width="160" height="30" rx="6" fill="#EFEADD" stroke="#D8C89E"/>
+        <text x="280" y="27" text-anchor="middle" font-size="12" fill="#5B5346">諮問機関の勧告 → 委員会が審議</text>
+        <line x1="280" y1="38" x2="280" y2="52" stroke="#C9B77F" stroke-width="1.5"/>
+        <g>
+          <rect x="14" y="56" width="256" height="82" rx="7" fill="#EAF0E4" stroke="#BFCDB4"/>
+          <text x="26" y="78" font-size="13" font-weight="700" fill="#4B6B3E">登録（記載）</text>
+          <text x="26" y="98" font-size="11" fill="#5B5346">Inscribe</text>
+          <text x="26" y="120" font-size="11" fill="#5B5346">そのまま世界遺産リストに記載</text>
+        </g>
+        <g>
+          <rect x="290" y="56" width="256" height="82" rx="7" fill="#F5EEDC" stroke="#D8C89E"/>
+          <text x="302" y="78" font-size="13" font-weight="700" fill="#A8823C">情報照会</text>
+          <text x="302" y="98" font-size="11" fill="#5B5346">Referral（比較的軽い）</text>
+          <text x="302" y="120" font-size="11" fill="#5B5346">追加情報を出せば翌年以降に再審議</text>
+        </g>
+        <g>
+          <rect x="14" y="150" width="256" height="82" rx="7" fill="#F3E7D6" stroke="#D8B98C"/>
+          <text x="26" y="172" font-size="13" font-weight="700" fill="#B06B2E">登録延期</text>
+          <text x="26" y="192" font-size="11" fill="#5B5346">Deferral（重い）</text>
+          <text x="26" y="214" font-size="11" fill="#5B5346">推薦書を抜本的に見直し・再審査</text>
+        </g>
+        <g>
+          <rect x="290" y="150" width="256" height="82" rx="7" fill="#F0E0DD" stroke="#D8A9A0"/>
+          <text x="302" y="172" font-size="13" font-weight="700" fill="#9B3B2E">不登録</text>
+          <text x="302" y="192" font-size="11" fill="#5B5346">Not to Inscribe</text>
+          <text x="302" y="214" font-size="11" fill="#5B5346">原則として再推薦できない</text>
+        </g>
+      </svg>`,
+      cap: '軽い順に<b>情報照会→登録延期</b>。<b>不登録は原則再推薦不可</b>で最も重い。',
+    },
+  ],
+
+  // ===== E2 顕著な普遍的価値（OUV）の3条件 =====
+  '基礎知識|真正性と完全性': [
+    {
+      id: 'ouv',
+      title: '顕著な普遍的価値（OUV）の3条件',
+      sub: '登録には、この3つを「すべて」満たす必要がある',
+      svg: `<svg viewBox="0 0 560 220" role="img" aria-label="顕著な普遍的価値は評価基準・真正性完全性・保護管理の3条件で成り立つ図">
+        <rect x="150" y="8" width="260" height="34" rx="8" fill="#9B3B2E"/>
+        <text x="280" y="30" text-anchor="middle" font-size="13" font-weight="700" fill="#F8F2E3">顕著な普遍的価値（OUV）</text>
+        <line x1="280" y1="42" x2="280" y2="58" stroke="#C9B77F" stroke-width="1.5"/>
+        <line x1="100" y1="58" x2="460" y2="58" stroke="#C9B77F" stroke-width="1.5"/>
+        <line x1="100" y1="58" x2="100" y2="72" stroke="#C9B77F" stroke-width="1.5"/>
+        <line x1="280" y1="58" x2="280" y2="72" stroke="#C9B77F" stroke-width="1.5"/>
+        <line x1="460" y1="58" x2="460" y2="72" stroke="#C9B77F" stroke-width="1.5"/>
+        <g>
+          <rect x="16" y="72" width="168" height="130" rx="7" fill="#F6ECD9" stroke="#D8C89E"/>
+          <text x="100" y="96" text-anchor="middle" font-size="13" font-weight="700" fill="#9B3B2E">① 評価基準</text>
+          <text x="100" y="120" text-anchor="middle" font-size="11" fill="#5B5346">(i)〜(x)のうち</text>
+          <text x="100" y="136" text-anchor="middle" font-size="11" fill="#5B5346">1つ以上を満たす</text>
+          <text x="100" y="170" text-anchor="middle" font-size="10" fill="#8A8270">文化6＋自然4</text>
+        </g>
+        <g>
+          <rect x="196" y="72" width="168" height="130" rx="7" fill="#F4EAD2" stroke="#D8C89E"/>
+          <text x="280" y="96" text-anchor="middle" font-size="13" font-weight="700" fill="#A8823C">② 真正性・完全性</text>
+          <text x="280" y="122" text-anchor="middle" font-size="11" fill="#5B5346">真正性＝文化遺産に適用</text>
+          <text x="280" y="140" text-anchor="middle" font-size="11" fill="#5B5346">完全性＝文化・自然の両方</text>
+          <text x="280" y="170" text-anchor="middle" font-size="10" fill="#8A8270">形状・材料・用途などが真実</text>
+        </g>
+        <g>
+          <rect x="376" y="72" width="168" height="130" rx="7" fill="#EFEADD" stroke="#D8C89E"/>
+          <text x="460" y="96" text-anchor="middle" font-size="13" font-weight="700" fill="#5B5346">③ 保護・管理</text>
+          <text x="460" y="122" text-anchor="middle" font-size="11" fill="#5B5346">法的保護と</text>
+          <text x="460" y="140" text-anchor="middle" font-size="11" fill="#5B5346">管理体制が整っている</text>
+          <text x="460" y="170" text-anchor="middle" font-size="10" fill="#8A8270">緩衝地帯の設定など</text>
+        </g>
+      </svg>`,
+      cap: 'OUV＝<b>①評価基準＋②真正性/完全性＋③保護管理</b>の3点セット。1つでも欠けると登録されない。',
+    },
+  ],
+
+  // ===== D2 建築様式の変遷 =====
+  'ヨーロッパ|建築様式（ロマネスク）': [
+    {
+      id: 'styles',
+      title: 'ヨーロッパ建築様式の変遷',
+      sub: 'アーチ・窓・光の扱いが時代とともに変わる',
+      svg: `<svg viewBox="0 0 560 250" role="img" aria-label="ロマネスク・ゴシック・ルネサンス・バロックの建築様式の変遷図">
+        <line x1="20" y1="40" x2="540" y2="40" stroke="#D8C89E" stroke-width="2"/>
+        <g>
+          <rect x="18" y="52" width="126" height="180" rx="7" fill="#F6ECD9" stroke="#D8C89E"/>
+          <circle cx="34" cy="40" r="5" fill="#9B3B2E"/>
+          <text x="81" y="74" text-anchor="middle" font-size="13" font-weight="700" fill="#9B3B2E">ロマネスク</text>
+          <text x="81" y="92" text-anchor="middle" font-size="10" fill="#8A8270">11〜12世紀</text>
+          <path d="M52 130 a29 29 0 0 1 58 0 v34 h-58 Z" fill="#EBD9B4" stroke="#B79B5E"/>
+          <text x="81" y="196" text-anchor="middle" font-size="10.5" fill="#5B5346">半円アーチ</text>
+          <text x="81" y="212" text-anchor="middle" font-size="10.5" fill="#5B5346">厚い壁・小さな窓</text>
+        </g>
+        <g>
+          <rect x="150" y="52" width="126" height="180" rx="7" fill="#F4EAD2" stroke="#D8C89E"/>
+          <circle cx="166" cy="40" r="5" fill="#A8823C"/>
+          <text x="213" y="74" text-anchor="middle" font-size="13" font-weight="700" fill="#A8823C">ゴシック</text>
+          <text x="213" y="92" text-anchor="middle" font-size="10" fill="#8A8270">12〜15世紀</text>
+          <path d="M184 164 L184 132 Q213 104 242 132 L242 164 Z" fill="#EBD9B4" stroke="#B79B5E"/>
+          <text x="213" y="196" text-anchor="middle" font-size="10.5" fill="#5B5346">尖頭アーチ</text>
+          <text x="213" y="212" text-anchor="middle" font-size="10.5" fill="#5B5346">大ステンドグラス・高い</text>
+        </g>
+        <g>
+          <rect x="282" y="52" width="126" height="180" rx="7" fill="#F6ECD9" stroke="#D8C89E"/>
+          <circle cx="298" cy="40" r="5" fill="#9B3B2E"/>
+          <text x="345" y="74" text-anchor="middle" font-size="13" font-weight="700" fill="#9B3B2E">ルネサンス</text>
+          <text x="345" y="92" text-anchor="middle" font-size="10" fill="#8A8270">15〜16世紀</text>
+          <path d="M316 164 v-20 a29 20 0 0 1 58 0 v20 Z" fill="#EBD9B4" stroke="#B79B5E"/>
+          <line x1="345" y1="124" x2="345" y2="164" stroke="#B79B5E"/>
+          <text x="345" y="196" text-anchor="middle" font-size="10.5" fill="#5B5346">古典古代の復興</text>
+          <text x="345" y="212" text-anchor="middle" font-size="10.5" fill="#5B5346">左右対称・ドーム</text>
+        </g>
+        <g>
+          <rect x="414" y="52" width="126" height="180" rx="7" fill="#F4EAD2" stroke="#D8C89E"/>
+          <circle cx="430" cy="40" r="5" fill="#A8823C"/>
+          <text x="477" y="74" text-anchor="middle" font-size="13" font-weight="700" fill="#A8823C">バロック</text>
+          <text x="477" y="92" text-anchor="middle" font-size="10" fill="#8A8270">17〜18世紀</text>
+          <path d="M448 164 q10 -40 29 -40 q19 0 29 40 Z" fill="#EBD9B4" stroke="#B79B5E"/>
+          <text x="477" y="196" text-anchor="middle" font-size="10.5" fill="#5B5346">曲線・過剰な装飾</text>
+          <text x="477" y="212" text-anchor="middle" font-size="10.5" fill="#5B5346">劇的な明暗・動き</text>
+        </g>
+      </svg>`,
+      cap: '<b>半円アーチのロマネスク</b>→<b>尖頭アーチ・ステンドグラスのゴシック</b>が最頻出の対比。',
+    },
+  ],
+
+  // ===== E1 文化的景観の3類型 =====
+  'アジア|文化的景観': [
+    {
+      id: 'cultland',
+      title: '文化的景観の3類型',
+      sub: '「人と自然の関わり」をどう示すかで3つに分かれる',
+      svg: `<svg viewBox="0 0 560 200" role="img" aria-label="文化的景観が意匠・有機的進化・関連の3類型に分かれる図">
+        <g>
+          <rect x="14" y="20" width="170" height="160" rx="7" fill="#F6ECD9" stroke="#D8C89E"/>
+          <text x="99" y="44" text-anchor="middle" font-size="13" font-weight="700" fill="#9B3B2E">① 意匠された景観</text>
+          <text x="99" y="66" text-anchor="middle" font-size="11" fill="#5B5346">人が意図的に設計</text>
+          <text x="99" y="86" text-anchor="middle" font-size="11" fill="#5B5346">した庭園・公園など</text>
+          <rect x="44" y="104" width="110" height="46" rx="4" fill="#E4CE9F"/>
+          <circle cx="70" cy="127" r="10" fill="#8AA06A"/><circle cx="99" cy="127" r="10" fill="#8AA06A"/><circle cx="128" cy="127" r="10" fill="#8AA06A"/>
+          <text x="99" y="170" text-anchor="middle" font-size="10" fill="#8A8270">例：庭園・宮殿庭園</text>
+        </g>
+        <g>
+          <rect x="194" y="20" width="170" height="160" rx="7" fill="#F4EAD2" stroke="#D8C89E"/>
+          <text x="279" y="44" text-anchor="middle" font-size="13" font-weight="700" fill="#A8823C">② 有機的に進化</text>
+          <text x="279" y="64" text-anchor="middle" font-size="11" fill="#5B5346">生活・生業から自然に発展</text>
+          <rect x="210" y="86" width="138" height="34" rx="4" fill="#EFE3C8"/>
+          <text x="279" y="107" text-anchor="middle" font-size="11" fill="#5B5346">(a) 残存する（化石的）</text>
+          <rect x="210" y="126" width="138" height="34" rx="4" fill="#EFE3C8"/>
+          <text x="279" y="147" text-anchor="middle" font-size="11" fill="#5B5346">(b) 継続する</text>
+        </g>
+        <g>
+          <rect x="374" y="20" width="172" height="160" rx="7" fill="#EFEADD" stroke="#D8C89E"/>
+          <text x="460" y="44" text-anchor="middle" font-size="13" font-weight="700" fill="#5B5346">③ 関連する景観</text>
+          <text x="460" y="66" text-anchor="middle" font-size="11" fill="#5B5346">宗教・芸術・文化との</text>
+          <text x="460" y="84" text-anchor="middle" font-size="11" fill="#5B5346">強い結びつき</text>
+          <text x="460" y="118" text-anchor="middle" font-size="11" fill="#9B3B2E" font-weight="700">物理的な要素は</text>
+          <text x="460" y="136" text-anchor="middle" font-size="11" fill="#9B3B2E" font-weight="700">乏しくてもよい</text>
+          <text x="460" y="168" text-anchor="middle" font-size="10" fill="#8A8270">例：聖なる山</text>
+        </g>
+      </svg>`,
+      cap: '<b>①意匠（庭園）／②有機的進化（残存・継続）／③関連（信仰など）</b>の3類型。',
+    },
+  ],
+
+  // ===== B3 マヤとエジプトのピラミッド =====
+  'アメリカ|マヤ文明に関する遺産': [
+    {
+      id: 'pyramid',
+      title: 'マヤとエジプトのピラミッドの違い',
+      sub: '形も用途も異なる。マヤは「神殿の土台」、エジプトは「王の墓」',
+      svg: `<svg viewBox="0 0 560 210" role="img" aria-label="マヤの階段ピラミッドとエジプトの真正ピラミッドの断面比較図">
+        <g>
+          <text x="150" y="24" text-anchor="middle" font-size="13" font-weight="700" fill="#9B3B2E">マヤ（階段ピラミッド）</text>
+          <g fill="#DCC186" stroke="#B79B5E">
+            <rect x="60" y="150" width="180" height="24"/>
+            <rect x="78" y="126" width="144" height="24"/>
+            <rect x="96" y="102" width="108" height="24"/>
+            <rect x="114" y="78" width="72" height="24"/>
+          </g>
+          <rect x="128" y="56" width="44" height="24" fill="#9B3B2E"/>
+          <text x="150" y="72" text-anchor="middle" font-size="9" fill="#F8F2E3">神殿</text>
+          <line x1="150" y1="150" x2="150" y2="80" stroke="#8A6E3A" stroke-dasharray="3 2"/>
+          <text x="150" y="192" text-anchor="middle" font-size="10.5" fill="#5B5346">頂部の神殿で宗教儀式</text>
+        </g>
+        <g>
+          <text x="410" y="24" text-anchor="middle" font-size="13" font-weight="700" fill="#A8823C">エジプト（真正ピラミッド）</text>
+          <path d="M330 174 L410 62 L490 174 Z" fill="#E4CE9F" stroke="#B79B5E"/>
+          <rect x="398" y="150" width="24" height="20" fill="#7A6540"/>
+          <text x="410" y="192" text-anchor="middle" font-size="10.5" fill="#5B5346">内部は王の墓（滑らかな四角錐）</text>
+        </g>
+        <line x1="280" y1="40" x2="280" y2="180" stroke="#E0D4B4" stroke-dasharray="4 3"/>
+      </svg>`,
+      cap: 'マヤは<b>階段状で頂部に神殿</b>（儀式の舞台）、エジプトは<b>滑らかな四角錐の墓</b>。',
+    },
+  ],
+
+  // ===== C2 世界遺産条約の制度史 =====
+  '基礎知識|条約誕生の背景': [
+    {
+      id: 'history',
+      title: '世界遺産条約 誕生までの流れと歩み',
+      sub: 'ヌビアの水没危機が「国境を越えて守る」思想を生んだ',
+      svg: `<svg viewBox="0 0 560 250" role="img" aria-label="世界遺産条約の成立と制度の歴史年表">
+        <line x1="70" y1="18" x2="70" y2="238" stroke="#D8C89E" stroke-width="2"/>
+        <g font-size="11.5">
+          <g><circle cx="70" cy="28" r="6" fill="#9B3B2E"/><text x="88" y="26" font-weight="700" fill="#1F2A3D">1960</text><text x="150" y="26" fill="#5B5346">ヌビア遺跡救済キャンペーン開始（アブ・シンベル神殿の移築）</text></g>
+          <g><circle cx="70" cy="60" r="6" fill="#9B3B2E"/><text x="88" y="58" font-weight="700" fill="#1F2A3D">1972</text><text x="150" y="58" fill="#5B5346">世界遺産条約を採択（UNESCO総会）</text></g>
+          <g><circle cx="70" cy="92" r="6" fill="#A8823C"/><text x="88" y="90" font-weight="700" fill="#1F2A3D">1975</text><text x="150" y="90" fill="#5B5346">条約が発効</text></g>
+          <g><circle cx="70" cy="124" r="6" fill="#A8823C"/><text x="88" y="122" font-weight="700" fill="#1F2A3D">1978</text><text x="150" y="122" fill="#5B5346">最初の世界遺産12件を登録</text></g>
+          <g><circle cx="70" cy="156" r="6" fill="#9B3B2E"/><text x="88" y="154" font-weight="700" fill="#1F2A3D">1992</text><text x="150" y="154" fill="#5B5346">日本が条約を締結／世界遺産センター設立／文化的景観の概念</text></g>
+          <g><circle cx="70" cy="188" r="6" fill="#A8823C"/><text x="88" y="186" font-weight="700" fill="#1F2A3D">1994</text><text x="150" y="186" fill="#5B5346">グローバル・ストラテジー採択／奈良文書（真正性）</text></g>
+          <g><circle cx="70" cy="220" r="6" fill="#9B3B2E"/><text x="88" y="218" font-weight="700" fill="#1F2A3D">2005</text><text x="150" y="218" fill="#5B5346">登録基準を(i)〜(x)の10項目に一本化</text></g>
+        </g>
+      </svg>`,
+      cap: '<b>1972年採択・1975年発効</b>。日本の締結は<b>1992年</b>と遅め。基準の10項目統合は2005年。',
+    },
+  ],
+
+  // ===== B2 世界遺産の区分ツリー =====
+  '基礎知識|世界遺産の定義': [
+    {
+      id: 'categories',
+      title: '世界遺産の区分',
+      sub: 'リストは1つ。種別（3つ）と、横断的に付く状態ラベルを分けて捉える',
+      svg: `<svg viewBox="0 0 560 220" role="img" aria-label="世界遺産の種別と横断的な区分のツリー図">
+        <rect x="205" y="8" width="150" height="30" rx="8" fill="#9B3B2E"/>
+        <text x="280" y="28" text-anchor="middle" font-size="13" font-weight="700" fill="#F8F2E3">世界遺産（1つのリスト）</text>
+        <line x1="280" y1="38" x2="280" y2="50" stroke="#C9B77F" stroke-width="1.5"/>
+        <line x1="110" y1="50" x2="450" y2="50" stroke="#C9B77F" stroke-width="1.5"/>
+        <line x1="110" y1="50" x2="110" y2="62" stroke="#C9B77F" stroke-width="1.5"/>
+        <line x1="280" y1="50" x2="280" y2="62" stroke="#C9B77F" stroke-width="1.5"/>
+        <line x1="450" y1="50" x2="450" y2="62" stroke="#C9B77F" stroke-width="1.5"/>
+        <g>
+          <rect x="30" y="62" width="160" height="64" rx="7" fill="#F6ECD9" stroke="#D8C89E"/>
+          <text x="110" y="86" text-anchor="middle" font-size="13" font-weight="700" fill="#9B3B2E">文化遺産</text>
+          <text x="110" y="106" text-anchor="middle" font-size="10" fill="#8A8270">記念物・建造物群・遺跡</text>
+        </g>
+        <g>
+          <rect x="200" y="62" width="160" height="64" rx="7" fill="#F4EAD2" stroke="#D8C89E"/>
+          <text x="280" y="86" text-anchor="middle" font-size="13" font-weight="700" fill="#A8823C">自然遺産</text>
+          <text x="280" y="106" text-anchor="middle" font-size="10" fill="#8A8270">地形・地質・生態系・景観</text>
+        </g>
+        <g>
+          <rect x="370" y="62" width="160" height="64" rx="7" fill="#EFEADD" stroke="#D8C89E"/>
+          <text x="450" y="86" text-anchor="middle" font-size="13" font-weight="700" fill="#5B5346">複合遺産</text>
+          <text x="450" y="106" text-anchor="middle" font-size="10" fill="#8A8270">文化と自然の両方を満たす</text>
+        </g>
+        <rect x="30" y="146" width="500" height="60" rx="7" fill="#FBF7EC" stroke="#E6DBBF"/>
+        <text x="46" y="167" font-size="11" font-weight="700" fill="#5B5346">横断的に付く状態・区分（種別とは別の軸）</text>
+        <g font-size="10.5" fill="#5B5346">
+          <text x="46" y="190">・危機遺産リスト　・登録抹消　・文化的景観　・トランスバウンダリー（国境をまたぐ）</text>
+          <text x="46" y="203" font-size="10" fill="#8A8270">状態ラベルは種別に重ねて付く。例：文化遺産かつ危機遺産</text>
+        </g>
+      </svg>`,
+      cap: '種別は<b>文化・自然・複合</b>の3つ。<b>危機遺産や文化的景観は種別に重ねて付く状態ラベル</b>。',
+    },
+  ],
+
+  // ===== A3 バッファゾーン（緩衝地帯）=====
+  '基礎知識|世界遺産の概念': [
+    {
+      id: 'buffer',
+      title: '資産とバッファゾーン（緩衝地帯）',
+      sub: '登録範囲の外側に、資産を守るための緩衝地帯を設ける',
+      svg: `<svg viewBox="0 0 560 210" role="img" aria-label="コアゾーンの周りをバッファゾーンが囲む同心構造の図">
+        <rect x="70" y="20" width="300" height="170" rx="10" fill="#F4EAD2" stroke="#C9B77F" stroke-dasharray="6 4"/>
+        <rect x="130" y="55" width="180" height="100" rx="8" fill="#9B3B2E"/>
+        <text x="220" y="100" text-anchor="middle" font-size="14" font-weight="700" fill="#F8F2E3">資産</text>
+        <text x="220" y="122" text-anchor="middle" font-size="11" fill="#F0DEC0">コアゾーン＝登録範囲</text>
+        <text x="220" y="42" text-anchor="middle" font-size="12" font-weight="700" fill="#A8823C">バッファゾーン（緩衝地帯）</text>
+        <g font-size="11.5" fill="#5B5346">
+          <text x="392" y="70">・登録範囲の<tspan font-weight="700" fill="#A8823C">外側</tspan>に設ける</text>
+          <text x="392" y="94">・原則、世界遺産そのもの</text>
+          <text x="404" y="110">には<tspan font-weight="700">含まれない</tspan></text>
+          <text x="392" y="134">・開発規制などで</text>
+          <text x="404" y="150">資産の価値を守る</text>
+        </g>
+      </svg>`,
+      cap: 'バッファゾーンは<b>登録範囲の外側</b>にあり、<b>資産自体には含まれない</b>が価値を守る役割を持つ。',
+    },
+  ],
+
+  // ===== A4 中国都城の中軸線（紫禁城）=====
+  'アジア|宮殿と庭園': [
+    {
+      id: 'axis',
+      title: '中国都城の中軸線と左右対称',
+      sub: '北京の宮殿は南北の一本の軸に沿って、建造物が左右対称に並ぶ',
+      svg: `<svg viewBox="0 0 560 220" role="img" aria-label="紫禁城が南北の中軸線に沿って左右対称に配置される図">
+        <text x="280" y="16" text-anchor="middle" font-size="11" fill="#8A8270">北 ↑</text>
+        <line x1="280" y1="24" x2="280" y2="196" stroke="#9B3B2E" stroke-width="2" stroke-dasharray="7 4"/>
+        <text x="298" y="112" font-size="11" font-weight="700" fill="#9B3B2E">中軸線</text>
+        <g fill="#DCC186" stroke="#B79B5E">
+          <rect x="250" y="30" width="60" height="20"/>
+          <rect x="244" y="66" width="72" height="26"/>
+          <rect x="248" y="108" width="64" height="24"/>
+          <rect x="250" y="150" width="60" height="20"/>
+        </g>
+        <g fill="#EDE3C6" stroke="#C9B77F">
+          <rect x="150" y="66" width="40" height="26"/><rect x="370" y="66" width="40" height="26"/>
+          <rect x="160" y="108" width="36" height="24"/><rect x="364" y="108" width="36" height="24"/>
+        </g>
+        <g font-size="10" fill="#5B5346" text-anchor="middle">
+          <text x="280" y="44">午門</text>
+          <text x="280" y="83">三大殿（太和殿ほか）</text>
+          <text x="280" y="124">内廷（乾清宮ほか）</text>
+          <text x="280" y="164">神武門</text>
+        </g>
+        <path d="M150 92 L150 96 L410 96 L410 92" fill="none" stroke="#C9B77F" stroke-dasharray="3 2"/>
+        <text x="280" y="210" text-anchor="middle" font-size="10.5" fill="#8A8270">南（正面）から北へ、主要な殿舎が軸上に一列。脇の建物は軸に対して左右対称</text>
+      </svg>`,
+      cap: '南北の<b>中軸線</b>に主要殿舎が一列に並び、脇の建物は<b>左右対称</b>。中国都城の設計思想。',
+    },
+  ],
+
+  // ===== D3 知床の海と陸をつなぐ生態系 =====
+  '日本_自然遺産|知床': [
+    {
+      id: 'shiretoko',
+      title: '知床＝海と陸をつなぐ生態系',
+      sub: '流氷が育む栄養が食物連鎖を通じて海から陸へ、そして海へ還る',
+      svg: `<svg viewBox="0 0 560 210" role="img" aria-label="知床の流氷から植物プランクトン・魚・海獣・サケ・ヒグマへとつながる食物連鎖の循環図">
+        <g text-anchor="middle" font-size="10.5">
+          <g><rect x="14" y="40" width="92" height="44" rx="6" fill="#DCE6EC" stroke="#A9C0CC"/><text x="60" y="60" font-weight="700" fill="#2C5A6E">流氷</text><text x="60" y="76" font-size="9" fill="#5B7683">アイスアルジー</text></g>
+          <text x="112" y="66" font-size="15" fill="#A8823C">→</text>
+          <g><rect x="128" y="40" width="96" height="44" rx="6" fill="#E4EDDC" stroke="#B6C9A5"/><text x="176" y="60" font-weight="700" fill="#4B6B3E">植物</text><text x="176" y="76" font-size="9" fill="#5B7346">プランクトン</text></g>
+          <text x="230" y="66" font-size="15" fill="#A8823C">→</text>
+          <g><rect x="246" y="40" width="88" height="44" rx="6" fill="#F4EAD2" stroke="#D8C89E"/><text x="290" y="60" font-weight="700" fill="#A8823C">魚</text><text x="290" y="76" font-size="9" fill="#8A8270">スケトウダラ等</text></g>
+          <text x="340" y="66" font-size="15" fill="#A8823C">→</text>
+          <g><rect x="356" y="30" width="94" height="30" rx="6" fill="#F0E0DD" stroke="#D8A9A0"/><text x="403" y="49" font-weight="700" fill="#9B3B2E">海の頂点</text></g>
+          <text x="403" y="76" font-size="9" fill="#5B5346">シャチ・アザラシ・オジロワシ</text>
+          <g><rect x="246" y="120" width="88" height="44" rx="6" fill="#F4EAD2" stroke="#D8C89E"/><text x="290" y="140" font-weight="700" fill="#A8823C">サケ・マス</text><text x="290" y="156" font-size="9" fill="#8A8270">川を遡上</text></g>
+          <g><rect x="356" y="120" width="94" height="44" rx="6" fill="#EDE7D5" stroke="#C9BE9B"/><text x="403" y="140" font-weight="700" fill="#5B5346">陸の生態系</text><text x="403" y="156" font-size="9" fill="#8A8270">ヒグマ・森</text></g>
+          <text x="340" y="146" font-size="15" fill="#A8823C">→</text>
+        </g>
+        <path d="M290 84 L290 120" fill="none" stroke="#A8823C" stroke-width="1.5" marker-end="url(#ar)"/>
+        <path d="M356 142 C120 150 60 130 60 88" fill="none" stroke="#8AA06A" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+        <text x="150" y="182" font-size="10" fill="#6E7F55">サケや動物の死骸が栄養となり海へ還る（循環）</text>
+        <defs><marker id="ar" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 Z" fill="#8AA06A"/></marker></defs>
+      </svg>`,
+      cap: '<b>流氷→植物プランクトン→魚→海獣／サケ→ヒグマ・森</b>。海と陸がつながり栄養が循環する点が知床の価値。',
+    },
+  ],
+
+};
+
 
 // ========== 00_kiso ==========
 // ===== 基礎知識① はじめに／② 世界遺産条約（上巻P20-38）=====
@@ -4494,7 +5121,7 @@ addQ('基礎知識','世界遺産条約','総会で議論が紛糾した論点�
 addQ('基礎知識','世界遺産条約','世界遺産条約の採択時の投票結果は？','賛成75カ国、棄権17、反対1で可決','');
 addQ('基礎知識','世界遺産条約','世界遺産条約を最初に批准した国と、発効した日は？','アメリカ合衆国（1973年）／締約国数が20カ国に達した1975年12月17日に発効','');
 addQ('基礎知識','世界遺産条約','2024年3月時点の世界遺産条約の加盟国数は？','195の国と地域','');
-addQ('基礎知識','世界遺産条約','日本の参加が遅れた3つの理由は？','①独自の文化財保護体制があったこと ②国内法の整備が決まらなかったこと ③分担拠出金の支払い方法などが決まらなかったこと','');
+addQ('基礎知識','世界遺産条約','日本の参加が遅れた3つの理由は？','独自の文化財保護体制があったこと／国内法の整備が決まらなかったこと／分担拠出金の支払い方法などが決まらなかったこと','');
 addQ('基礎知識','世界遺産条約','日本が世界遺産条約の受諾書を寄託した日と、日本について発効した日は？','1992年6月30日に寄託（UNESCO総会での採択から20年後）／同年9月30日に日本について発効','');
 
 // --- 最初の12件 ---
@@ -4509,16 +5136,16 @@ addQ('基礎知識','世界遺産条約','世界遺産条約の採択の背景�
 addQ('基礎知識','世界遺産条約','世界遺産条約の「非常に重要な点」とされる特徴は？','文化遺産と自然遺産を1つの条約で保護しようとしている点','それまで別々の枠組みで保護が進められてきたものを、互いに影響しあう切り離すことのできない人類共通の財産として位置づけた。');
 addQ('基礎知識','世界遺産条約','世界遺産条約の第1章の内容と、条文の範囲は？','文化遺産及び自然遺産の定義（第1〜3条）／その定義に基づき遺産を認定し区域の策定を行うのは締約国の役割','');
 addQ('基礎知識','世界遺産条約','第4条が定める締約国の義務と責任は？','自国内の文化遺産と自然遺産を認定し、保護・保全を行い次の世代に伝えていく一義的な義務と責任は遺産を保有する各締約国にある／そのために自国が持つ全ての能力だけでなく、可能な限りの国際的な援助や協力を得て最善を尽くさなければならない','');
-addQ('基礎知識','世界遺産条約','第5条が締約国に求めている5つの措置は？','①文化遺産と自然遺産に対して社会生活における役割を与える ②保護・保全のための機関を国内に設置する ③学術的・技術的な研究と調査を進め遺産を脅かす危機に対処する方法を開発する ④保護・保全のために必要な立法・行政・財政・技術・学術上で適切な措置をとる ⑤保護・保全のための全国もしくは地域的な研修センターを設置する','');
+addQ('基礎知識','世界遺産条約','第5条が締約国に求めている5つの措置は？','文化遺産と自然遺産に対して社会生活における役割を与える／保護・保全のための機関を国内に設置する／学術的・技術的な研究と調査を進め遺産を脅かす危機に対処する方法を開発する／保護・保全のために必要な立法・行政・財政・技術・学術上で適切な措置をとる／保護・保全のための全国もしくは地域的な研修センターを設置する','');
 addQ('基礎知識','世界遺産条約','第6条と第7条が定める国際社会の義務は？','世界遺産リストに記載された文化遺産や自然遺産は世界の遺産であることを認識し、全締約国が遺産の保護に協力することが国際社会全体の義務である','');
 addQ('基礎知識','世界遺産条約','第8条が定める世界遺産委員会の設置と、諮問機関の参加は？','21カ国からなる「顕著な普遍的価値を有する文化遺産及び自然遺産の保護のための政府間委員会（世界遺産委員会）」の設置／諮問機関としてICCROM・ICOMOS・IUCNの代表一人が参加','世界遺産条約締約国会議の要請で他の政府間機関やNGOの代表も顧問の資格で出席できる。委員国の選出はUNESCO総会の通常会期の間に開催される世界遺産条約締約国会議でなされる。');
 addQ('基礎知識','世界遺産条約','第9条が定める委員国の任期の条文上の表現は？','「その委員国が選出された時に開催されているUNESCO総会の通常会期が終わった後に開催される3回目の通常会期の終わりまで」','委員国に選ばれた国は自国の代表として文化遺産や自然遺産の分野において資格のあるものを選ぶことが求められている。');
-addQ('基礎知識','世界遺産条約','第11条で定められている、世界遺産リスト記載に関する重要な2点は？','①世界遺産リストに記載するには遺産を保有する国の同意が必要 ②2つ以上の国が主権や管轄権を主張する領域にある遺産を登録することが、その紛争におけるいかなる国の権利にも影響を及ぼすものでない','危機遺産リストの作成と公表についても定められている。');
+addQ('基礎知識','世界遺産条約','第11条で定められている、世界遺産リスト記載に関する重要な2点は？','世界遺産リストに記載するには遺産を保有する国の同意が必要／2つ以上の国が主権や管轄権を主張する領域にある遺産を登録することが、その紛争におけるいかなる国の権利にも影響を及ぼすものでない','危機遺産リストの作成と公表についても定められている。');
 addQ('基礎知識','世界遺産条約','危機遺産リストに記載できる遺産の条件は？','重大かつ特別な危機にさらされているもののみ／危機を取り除く作業に必要な経費の見積もりを含む','保護のための大規模な作業が必要とされ、世界遺産条約に基づいて援助が要請されている遺産のリスト。');
 addQ('基礎知識','世界遺産条約','第12条が定める、リストに記載されなかった遺産の扱いは？','遺産が世界遺産リストもしくは危機遺産リストに記載されなかったとしても、その遺産が「顕著な普遍的価値」を持っていないという意味に解釈してはならない','');
 addQ('基礎知識','世界遺産条約','第13条が定める国際的援助の決議方法は？','世界遺産委員会に出席して投票する委員国の3分の2の多数による決議','実際は合意形成で運用され、合意に至らなかった場合に多数決となる。');
 addQ('基礎知識','世界遺産条約','第14条が定める世界遺産委員会の運営体制は？','UNESCO事務局長の任命する世界遺産センター事務局の補佐を受け、ICCROM・ICOMOS・IUCNなどの専門分野の能力を活用しながら会議を運営し、その決定に責任を負う','');
-addQ('基礎知識','世界遺産条約','世界遺産基金への拠出に関する2つの原則は？','①世界遺産委員会が決定する目的にのみ使用することができる ②拠出にはいかなる政治的な条件も付けることはできない','第15条で世界遺産基金の設立が定められている。');
+addQ('基礎知識','世界遺産条約','世界遺産基金への拠出に関する2つの原則は？','世界遺産委員会が決定する目的にのみ使用することができる／拠出にはいかなる政治的な条件も付けることはできない','第15条で世界遺産基金の設立が定められている。');
 addQ('基礎知識','世界遺産条約','第16条が定める分担拠出金のルールは？','2年に1度、各締約国が世界遺産基金に分担拠出金を支払う／金額は世界遺産条約締約国会議で各国の比率を決める／UNESCOに対する分担拠出金の1%を超えない額とする','分担比率にとらわれず任意の金額を拠出することも受諾書を寄託する際に宣言することで可能だが、定められた分担比率の額を下回ってはならず、2年に1度定期的に支払わなければならない。');
 addQ('基礎知識','世界遺産条約','分担拠出金の支払いが延滞している締約国が失う資格は？','世界遺産委員会の委員国に選出される資格','');
 addQ('基礎知識','世界遺産条約','第5章が定める国際的援助の負担割合は？','援助を要請する締約国は財政的に許す限りの割合の額を拠出し、国際社会は必要な経費の一部のみを負担する／国際的な援助を受ける国は該当する遺産を引き続き保護・保全する責任を負う','自然災害などによる被災を原因とする要請は緊急な作業を必要とするため、世界遺産委員会が使用することができる予備基金を設けることも定められている。');
@@ -4537,8 +5164,8 @@ addQ('基礎知識','世界遺産条約','ビューロー会議の役割と、�
 addQ('基礎知識','世界遺産条約','世界遺産委員会の委員国が選出される場と、任期は？','2年に1度のUNESCO総会の会期中に開催される世界遺産条約締約国会議／任期は6年','公平な代表性を確保し各締約国に均等に機会が与えられるよう、自発的に4年で任期を終えることと、連続して再選することの自粛が望ましいとされている。');
 addQ('基礎知識','世界遺産条約','世界遺産リストに登録遺産を持たない国への配慮は？','世界遺産条約締約国会議に先立つ世界遺産委員会の決議に基づいて、一定の議席を割り当てられることもできる','');
 addQ('基礎知識','世界遺産条約','委員国選出における地域別の最低議席数は？','西欧・北米（グループI）2カ国／東欧（グループII）2カ国／ラテンアメリカ・カリブ海（グループIII）2カ国／アジア・太平洋（グループIV）3カ国／アフリカ（グループVa）4カ国／アラブ（グループVb）2カ国','UNESCO総会の選挙のグループ分けに準じている。合計15カ国が最低限確保される。');
-addQ('基礎知識','世界遺産条約','世界遺産委員会の主な役割10項目のうち、リストに関わる4つは？','①暫定リストと推薦書に基づき世界遺産リストへの記載の可否を決定 ②記載された遺産の保全状況をリアクティヴ・モニタリングと定期報告を通じて調査 ③危機遺産リストへの登録の可否と、記載済み遺産の削除の可否を決定 ④世界遺産リストからの抹消の可否を決定','');
-addQ('基礎知識','世界遺産条約','世界遺産委員会の主な役割のうち、基金・報告・指針に関わるものは？','⑤国際的援助の要請の手続きの決定と事前の調査・協議 ⑥世界遺産基金の使い方を決定 ⑦世界遺産条約締約国会議とUNESCO総会に2年ごとに活動報告書を提出 ⑧世界遺産条約の履行について定期的に調査と審査 ⑨作業指針の改訂と採択 ⑩世界遺産基金を増額する方法を検討','');
+addQ('基礎知識','世界遺産条約','世界遺産委員会の主な役割10項目のうち、リストに関わる4つは？','暫定リストと推薦書に基づき世界遺産リストへの記載の可否を決定／記載された遺産の保全状況をリアクティヴ・モニタリングと定期報告を通じて調査／危機遺産リストへの登録の可否と、記載済み遺産の削除の可否を決定／世界遺産リストからの抹消の可否を決定','');
+addQ('基礎知識','世界遺産条約','世界遺産委員会の主な役割のうち、基金・報告・指針に関わるものは？','⑤国際的援助の要請の手続きの決定と事前の調査・協議／⑥世界遺産基金の使い方を決定／⑦世界遺産条約締約国会議とUNESCO総会に2年ごとに活動報告書を提出／⑧世界遺産条約の履行について定期的に調査と審査／⑨作業指針の改訂と採択／⑩世界遺産基金を増額する方法を検討','');
 
 // --- 4つの決議 ---
 addQ('基礎知識','世界遺産条約','世界遺産委員会の4段階の決議を挙げると？','登録（Inscription）・情報照会（Referral of Nominations）・登録延期（Deferral of Nominations）・不登録（Decision not to inscribe）','暫定リストの内容と推薦書、諮問機関から出された勧告書などを基に審議を行う。');
@@ -4555,9 +5182,9 @@ addQ('基礎知識','世界遺産条約','5つのCのそれぞれの内容は？
 // --- 推薦の上限と優先順位 ---
 addQ('基礎知識','世界遺産条約','1締約国の推薦上限と、2件推薦できる条件は？','1回の世界遺産委員会につき1件／以前の世界遺産委員会で「情報照会」または「登録延期」の決議が出された遺産が再推薦された場合は2件まで','世界遺産リスト記載数の上限は定められていないが、リストの信頼性の確保に加え人的・財政的な状況も考慮されている。');
 addQ('基礎知識','世界遺産条約','1回の世界遺産委員会での審議数の上限は？','35件','35件以上推薦書が提出された場合は優先順位に従って審議を行う。');
-addQ('基礎知識','世界遺産条約','推薦数が35件を超えた時の審議の優先順位、上位3つは？','①世界遺産リストに1件も遺産が記載されていない国から推薦された遺産 ②世界遺産リストに記載されている遺産数が3件以下の国から推薦された遺産 ③「情報照会」または「登録延期」の決議が出された後に再推薦された遺産','');
-addQ('基礎知識','世界遺産条約','審議の優先順位のうち、遺産の種別に関わるものは？','⑥自然遺産 ⑦複合遺産 ⑧トランスバウンダリー・サイト','④年間35件の審議制限と優先順位によって審議されなかった遺産、⑤プレリミナリー・アセスメントで諮問機関からの事前評価報告書を受理した後5年目に推薦された遺産、が先行する。');
-addQ('基礎知識','世界遺産条約','審議の優先順位のうち、締約国の属性に関わるものは？','⑨アフリカ・太平洋地域・カリブ海地域の締約国から推薦された遺産 ⑩世界遺産条約を批准してから20年以内の締約国から推薦された遺産 ⑪直近で5年以上推薦書が出されていない締約国から推薦された遺産 ⑫世界遺産委員会の委員国としての任期中に自国の遺産の推薦を自主的に控えた締約国から推薦された遺産','⑫の優先順位は委員国の任期終了後から4年間適用される。');
+addQ('基礎知識','世界遺産条約','推薦数が35件を超えた時の審議の優先順位、上位3つは？','世界遺産リストに1件も遺産が記載されていない国から推薦された遺産／世界遺産リストに記載されている遺産数が3件以下の国から推薦された遺産／「情報照会」または「登録延期」の決議が出された後に再推薦された遺産','');
+addQ('基礎知識','世界遺産条約','審議の優先順位のうち、遺産の種別に関わるものは？','⑥自然遺産／⑦複合遺産／⑧トランスバウンダリー・サイト','④年間35件の審議制限と優先順位によって審議されなかった遺産、⑤プレリミナリー・アセスメントで諮問機関からの事前評価報告書を受理した後5年目に推薦された遺産、が先行する。');
+addQ('基礎知識','世界遺産条約','審議の優先順位のうち、締約国の属性に関わるものは？','⑨アフリカ・太平洋地域・カリブ海地域の締約国から推薦された遺産／⑩世界遺産条約を批准してから20年以内の締約国から推薦された遺産／⑪直近で5年以上推薦書が出されていない締約国から推薦された遺産／⑫世界遺産委員会の委員国としての任期中に自国の遺産の推薦を自主的に控えた締約国から推薦された遺産','⑫の優先順位は委員国の任期終了後から4年間適用される。');
 addQ('基礎知識','世界遺産条約','優先順位に該当しない遺産の順位はどう決まるか？','世界遺産センターが推薦書を受理した日付が、二次的な要因として使用される','');
 
 // --- 作業指針 ---
@@ -4568,9 +5195,9 @@ addStory('基礎知識','世界遺産条約','8章38条が定める制度の骨�
 // ===== 基礎知識・制度運用（作業指針／手続規則／暫定リスト／締約国会議／世界遺産センター／基金／国際的援助）（上巻P33-38）=====
 
 // --- 作業指針 ---
-addQ('基礎知識','制度運用','作業指針で定められる主な手続き4点は？','①世界遺産リストと危機遺産リストへの記載 ②世界遺産リストに記載された遺産の保護と保全 ③世界遺産基金に基づく国際的援助の付与 ④世界遺産条約を支える国家的・国際的な動員','最新版は世界遺産センターの公式Webサイトで公開されている。');
+addQ('基礎知識','制度運用','作業指針で定められる主な手続き4点は？','世界遺産リストと危機遺産リストへの記載／世界遺産リストに記載された遺産の保護と保全／世界遺産基金に基づく国際的援助の付与／世界遺産条約を支える国家的・国際的な動員','最新版は世界遺産センターの公式Webサイトで公開されている。');
 addQ('基礎知識','制度運用','作業指針が示している内容の範囲は？','「顕著な普遍的価値」の考え方や登録基準、真正性や完全性の定義などの概念的な指針／申請・登録の手順やスケジュールといった実務的な指針／国際的援助や保全状況の報告などの手続き／諮問機関や関連機関、関連条約といった関連事項／世界遺産エンブレムの使用規定','');
-addQ('基礎知識','制度運用','作業指針の主な対象者5項目は？','①世界遺産条約締約国 ②世界遺産委員会 ③UNESCOの世界遺産センター（世界遺産委員会事務局として）④世界遺産委員会の諮問機関 ⑤世界遺産リストに記載された遺産の保護に携わる遺産管理者・関係者・協力者','');
+addQ('基礎知識','制度運用','作業指針の主な対象者5項目は？','世界遺産条約締約国／世界遺産委員会／UNESCOの世界遺産センター（世界遺産委員会事務局として）／世界遺産委員会の諮問機関／世界遺産リストに記載された遺産の保護に携わる遺産管理者・関係者・協力者','');
 
 // --- 手続規則 ---
 addQ('基礎知識','制度運用','「手続規則」の採択年・会議と、その内容は？','1977年の第1回世界遺産委員会／世界遺産委員会の招集や会議運営、投票、保全状況報告、使用言語など世界遺産委員会に関係する手続き','世界遺産条約締約国会議にはまた別の手続規則が定められている。');
@@ -4585,25 +5212,25 @@ addQ('基礎知識','制度運用','暫定リストから抹消される遺産�
 
 // --- 世界遺産条約締約国会議 ---
 addQ('基礎知識','制度運用','世界遺産条約締約国会議の構成と開催時期は？','世界遺産条約を採択した全締約国による会議／2年ごとに開催されるUNESCO総会会期中に開催','第1回は1976年11月のナイロビでのUNESCO総会会期中に開催された。');
-addQ('基礎知識','制度運用','世界遺産条約締約国会議の主な議題3つは？','①世界遺産基金への分担拠出金の分担比率の決定 ②世界遺産委員会委員国の選定 ③世界遺産委員会から提出された活動報告書の受理','');
+addQ('基礎知識','制度運用','世界遺産条約締約国会議の主な議題3つは？','世界遺産基金への分担拠出金の分担比率の決定／世界遺産委員会委員国の選定／世界遺産委員会から提出された活動報告書の受理','');
 addQ('基礎知識','制度運用','締約国会議における投票権の扱いは？','全ての締約国が1票の投票権を持つ／UNESCO事務局長は投票権を持たないが、議題に対して口頭もしくは文書で意見を述べることができる／世界遺産条約を締約していない国や地域も投票権のないオブザーバーとして参加できる','');
 
 // --- 世界遺産センター ---
 addQ('基礎知識','制度運用','世界遺産センターの設立年・所在地と、その役割は？','1992年設立／パリのUNESCO本部内に常設／世界遺産委員会を補佐する世界遺産委員会事務局','UNESCO事務局長は世界遺産センター局長を世界遺産委員会の秘書に任命している。');
-addQ('基礎知識','制度運用','世界遺産センターの主な活動内容のうち、会議・推薦書に関するものは？','①世界遺産条約締約国会議と世界遺産委員会の開催 ②世界遺産委員会の決定と締約国会議の決議の履行と実施状況の報告 ③推薦書の受理・事務局での登録・書類内容が完全であるかの確認・推薦書類の保管と関係する諮問機関への送付','');
-addQ('基礎知識','制度運用','世界遺産センターの主な活動内容のうち、報告・モニタリングに関するものは？','④グローバル・ストラテジーの一環としての研究やその他の活動の調整 ⑤定期報告の取りまとめ ⑥リアクティヴ・モニタリングの調整と実施、締約国の要請により諮問機関が行う諮問活動の調整と必要に応じた参加','');
-addQ('基礎知識','制度運用','世界遺産センターの主な活動内容のうち、資金・広報に関するものは？','⑦国際的援助の調整 ⑧世界遺産の保全と管理のための予算外の資金の確保 ⑨締約国が世界遺産委員会の計画やプロジェクトを履行する際の援助 ⑩締約国と諮問機関、一般市民に向けた情報発信を通じた世界遺産と世界遺産条約のプロモーション','');
+addQ('基礎知識','制度運用','世界遺産センターの主な活動内容のうち、会議・推薦書に関するものは？','世界遺産条約締約国会議と世界遺産委員会の開催／世界遺産委員会の決定と締約国会議の決議の履行と実施状況の報告／推薦書の受理・事務局での登録・書類内容が完全であるかの確認・推薦書類の保管と関係する諮問機関への送付','');
+addQ('基礎知識','制度運用','世界遺産センターの主な活動内容のうち、報告・モニタリングに関するものは？','④グローバル・ストラテジーの一環としての研究やその他の活動の調整／⑤定期報告の取りまとめ／⑥リアクティヴ・モニタリングの調整と実施、締約国の要請により諮問機関が行う諮問活動の調整と必要に応じた参加','');
+addQ('基礎知識','制度運用','世界遺産センターの主な活動内容のうち、資金・広報に関するものは？','⑦国際的援助の調整／⑧世界遺産の保全と管理のための予算外の資金の確保／⑨締約国が世界遺産委員会の計画やプロジェクトを履行する際の援助／⑩締約国と諮問機関、一般市民に向けた情報発信を通じた世界遺産と世界遺産条約のプロモーション','');
 
 // --- 世界遺産基金 ---
 addQ('基礎知識','制度運用','世界遺産基金の設立年と、その性格は？','1976年／UNESCOの財政規則に基づく信託基金','');
 addQ('基礎知識','制度運用','世界遺産基金の財源は？','締約国のUNESCO分担拠出金の1%を超えない額（実際には1%を適用）の拠出金と任意の拠出金／締約国以外の国や政府間機関、個人からの拠出金や贈与・遺贈／世界遺産基金の資金から生じる利子','締約国は2年に1度、拠出金を支払わなければならない。');
-addQ('基礎知識','制度運用','拠出金の支払いが延滞している締約国が失う2つの資格は？','①世界遺産委員会の委員国に選出される資格 ②「緊急援助」以外の国際的援助を受ける資格','');
+addQ('基礎知識','制度運用','拠出金の支払いが延滞している締約国が失う2つの資格は？','世界遺産委員会の委員国に選出される資格／「緊急援助」以外の国際的援助を受ける資格','');
 addQ('基礎知識','制度運用','世界遺産基金の主な使途は？','途上国の登録推薦書作成や保護管理計画書の作成の援助／専門家の調査・研究／専門家や技術者の養成／自然災害や紛争からの復興／リアクティヴ・モニタリングへの派遣／保全状況報告に基づく技術協力／危機遺産リスト記載遺産への技術支援／教育・普及活動への支援／国際的援助','締約国は拠出に際しいかなる政治的な条件もつけることはできない。');
 addQ('基礎知識','制度運用','世界遺産基金が現在抱えている課題は？','資金が大きく不足しており、「緊急援助」よりも「準備援助」に優先的に予算が振り分けられるなど課題が多い','作業指針上の優先順位（緊急援助が最も高い）とは逆の運用になっている点が問題。');
 
 // --- 国際的援助 ---
 addQ('基礎知識','制度運用','国際的援助の第一の資金源と、その目的は？','世界遺産基金／世界遺産リストや暫定リストに記載された遺産の保全と管理において、遺産を保有する国が国内で十分な人的・財政的資源を確保できない場合に、保有国の取り組みを国際的に補助する','対象は世界遺産リストに記載されている遺産と、記載することになっている遺産。');
-addQ('基礎知識','制度運用','国際的援助の3つの分野と、それぞれの内容は？','①緊急援助＝大規模な災害や事故、紛争などで被害を受けた遺産の復興費用など ②保全・管理援助＝専門家や技術者の派遣や機材の購入費用、管理者や専門家の育成費用、遺産の価値や理念の教育・広報費用、国際協力促進費用など ③準備援助＝事前調査への準備支援など','世界遺産委員会が調整と範囲、割り振りを行い2年ごとに予算を決定する。');
+addQ('基礎知識','制度運用','国際的援助の3つの分野と、それぞれの内容は？','緊急援助＝大規模な災害や事故、紛争などで被害を受けた遺産の復興費用など／保全・管理援助＝専門家や技術者の派遣や機材の購入費用、管理者や専門家の育成費用、遺産の価値や理念の教育・広報費用、国際協力促進費用など／準備援助＝事前調査への準備支援など','世界遺産委員会が調整と範囲、割り振りを行い2年ごとに予算を決定する。');
 addQ('基礎知識','制度運用','作業指針における国際的援助の優先順位は？','「緊急援助」が最も高く、「準備援助」が最も低い','');
 addQ('基礎知識','制度運用','危機遺産リスト記載遺産への国際的援助の扱いは？','優先的に供与されており、世界遺産委員会は確実に予算が割り当てられるよう特別予算枠を設けている','');
 addQ('基礎知識','制度運用','国際的援助の可否を判断する際に考慮される追加的な観点は？','波及効果や相乗効果があり他の資金源からの財政的・技術的支援を引き出す可能性があるか／戦略的目標「5つのC」に及ぼす影響／科学的研究と費用対効果の高い保全技術の開発の模範となるか／ジェンダー平等や地域コミュニティと先住民の関与についての活動と関係しているか','');
@@ -4683,22 +5310,22 @@ addQ('基礎知識','世界遺産の定義','複合遺産が世界遺産条約�
 addQ('基礎知識','世界遺産の定義','作業指針における複合遺産の定義文は？','世界遺産条約の第1条、第2条に規定されている文化遺産及び自然遺産の定義（の一部）の両方を満たす場合は「複合遺産」とみなす','');
 
 // --- 危機遺産 ---
-addQ('基礎知識','世界遺産の定義','危機遺産リストに記載される要件は？','①重大かつ明確な危険にさらされている ②その脅威が人間の関与により改善可能である ③保全のためには大規模な作業が必要である ④世界遺産条約に基づく援助がその遺産に対し要請されている','これらを満たす場合、世界遺産委員会がリストに記載することができる。');
+addQ('基礎知識','世界遺産の定義','危機遺産リストに記載される要件は？','重大かつ明確な危険にさらされている／その脅威が人間の関与により改善可能である／保全のためには大規模な作業が必要である／世界遺産条約に基づく援助がその遺産に対し要請されている','これらを満たす場合、世界遺産委員会がリストに記載することができる。');
 addQ('基礎知識','世界遺産の定義','世界で初めて危機遺産リストに記載された遺産・年・理由は？','コトルの文化歴史地域と自然（モンテネグロ）／1979年／地震の被害','');
 addQ('基礎知識','世界遺産の定義','文化遺産と自然遺産で、脅威の性質はどう異なるか？','文化遺産＝自然的要因と人為的要因の両方が脅威となり得る／自然遺産＝ほとんどの脅威が人為的なもので、自然的要因が脅威となるのは伝染病など極めてまれな場合に限られる','状況によっては、大規模公共事業の中止や法的位置づけの強化などの行政的・立法的措置により改善できる場合もある。');
-addQ('基礎知識','世界遺産の定義','世界遺産条約第11条が例示する「重大かつ特別な危機」6つは？','①急速に進む破損 ②大規模な公共工事・民間事業、急激な都市開発事業、観光開発事業に起因する消失の危機 ③原因が不明である大規模な変化 ④理由のいかんに依らない放棄 ⑤武力紛争の勃発またはその恐れ ⑥大規模な災害・異変・大火・地震や地滑り・噴火や水位の変化・洪水や津波','');
+addQ('基礎知識','世界遺産の定義','世界遺産条約第11条が例示する「重大かつ特別な危機」6つは？','急速に進む破損／大規模な公共工事・民間事業、急激な都市開発事業、観光開発事業に起因する消失の危機／原因が不明である大規模な変化／理由のいかんに依らない放棄／武力紛争の勃発またはその恐れ／大規模な災害・異変・大火・地震や地滑り・噴火や水位の変化・洪水や津波','');
 addQ('基礎知識','世界遺産の定義','危機遺産リストへの登録基準の2区分は？','「明白な危機」と「潜在的な危機」／作業指針の中で文化遺産と自然遺産でそれぞれ定められている','');
 addQ('基礎知識','世界遺産の定義','文化遺産の「明白な危機」6項目は？','(i)材料の重大な劣化 (ii)構造と装飾の両方もしくはどちらかの重大な劣化 (iii)建築または都市計画上の一貫性の重大な劣化 (iv)都市空間または農村空間、あるいは自然環境の重大な劣化 (v)歴史的真正性の重大な消失 (vi)文化的意義の重大な消失','明確かつ証明された差し迫った危機に直面している場合。');
 addQ('基礎知識','世界遺産の定義','文化遺産の「潜在的な危機」6項目は？','(i)保護の程度を低下させるような資産の法的位置づけの変更 (ii)保全に関する政策の欠如 (iii)地域計画事業による脅威 (iv)都市計画による影響 (v)武力紛争の勃発または脅威 (vi)気候的要因・地質学的要因・その他の環境要因による脅威的な影響','遺産の固有の特徴に有害な影響を与え得る脅威に直面している場合。');
 addQ('基礎知識','世界遺産の定義','自然遺産の「明白な危機」3項目は？','(i)病気など自然的要因または密猟など人為的要因による、絶滅危惧種やその他のOUVを持つ生物種の個体数の重大な減少 (ii)人間の移住、貯水池の建設、工業・農業開発などによる資産の自然美または科学的価値の重大な劣化 (iii)資産の完全性を脅かす、資産境界または上流域への人間活動の侵食','(ii)の工業・農業開発には農薬および化学肥料の使用、大規模公共事業、採掘、汚染、伐採、薪の採取などが含まれる。');
 addQ('基礎知識','世界遺産の定義','自然遺産の「潜在的な危機」5項目は？','(i)関係地域の法的保護状況の変更 (ii)資産の範囲内または資産を脅かす影響を持つ場所に計画された移住計画または開発計画 (iii)武力紛争の勃発または脅威 (iv)管理計画または管理体制の欠如・不備・不十分な執行 (v)気候的要因・地質学的要因・その他の環境要因による脅威的な影響','文化遺産の潜在的危機が6項目であるのに対し5項目。');
-addQ('基礎知識','世界遺産の定義','危機遺産リスト記載の検討時に補足的に考慮すべき点は？','①世界遺産に影響する決定を下すのは一国の政府があらゆる要素を秤にかけた後であり、委員会の助言を脅威にさらされる前に出せれば決定的な役割を果たしうる ②「明白な危機」では物理的・文化的劣化を影響の強さに照らして状況に応じて分析すべき ③「潜在的な危機」では社会的・経済的枠組みの通常の展開に照らして評価すべき ④未知の原因や予期できない原因についても考慮すべき','「潜在的な危機」では、武力紛争の恐れなど影響を評価することが不可能な脅威や、人口増加など本質的に「差し迫った」ものとはなり得ず単に予見されるだけの脅威もある点に配慮が必要。');
+addQ('基礎知識','世界遺産の定義','危機遺産リスト記載の検討時に補足的に考慮すべき点は？','世界遺産に影響する決定を下すのは一国の政府があらゆる要素を秤にかけた後であり、委員会の助言を脅威にさらされる前に出せれば決定的な役割を果たしうる／「明白な危機」では物理的・文化的劣化を影響の強さに照らして状況に応じて分析すべき／「潜在的な危機」では社会的・経済的枠組みの通常の展開に照らして評価すべき／未知の原因や予期できない原因についても考慮すべき','「潜在的な危機」では、武力紛争の恐れなど影響を評価することが不可能な脅威や、人口増加など本質的に「差し迫った」ものとはなり得ず単に予見されるだけの脅威もある点に配慮が必要。');
 addQ('基礎知識','世界遺産の定義','危機遺産リスト記載を検討する際に策定・採択されるものは？','「危機にさらされている世界遺産リストから当該遺産を削除するための望ましい保全状況」と改善措置計画','可能な限り遺産を保有する締約国と協議をしつつ策定する。');
 addQ('基礎知識','世界遺産の定義','改善措置計画を策定するために世界遺産委員会が要請することは？','世界遺産センターに対し、締約国と協議を行いつつ遺産の現状や遺産を脅かす危機、改善措置の実行可能性などを確認すること／諮問機関やその他の機関を派遣してリアクティヴ・モニタリングを行い、危機の性質や範囲を評価し実施すべき措置を提案することを決定する場合もある','');
 addQ('基礎知識','世界遺産の定義','危機遺産に記載された後、締約国に求められることと、受けられる支援は？','世界遺産委員会の協力の下、保全計画の作成と実行が求められる／世界遺産基金の活用や、世界遺産センターや各国の政府・民間機関などからの財政的・技術的援助を受けることができる','世界遺産委員会は危機遺産の保全状況についてリアクティヴ・モニタリングを行い毎年審議する。');
 addQ('基礎知識','世界遺産の定義','「緊急的登録推薦」とはどのような制度か？','「顕著な普遍的価値」があることが明らかな暫定リスト記載の遺産で、危機に直面している遺産を通常の登録手順を取らず緊急的に登録する制度／世界遺産リスト記載と同時に危機遺産リストに記載される','');
-addQ('基礎知識','世界遺産の定義','危機遺産の毎年の審議で決定される3つの事項は？','①追加の措置が必要かどうか ②危機遺産リストから削除可能な状況に改善しているかどうか ③登録した際の「顕著な普遍的価値」が損なわれていた場合は世界遺産リストから抹消すべきかどうか','');
-addQ('基礎知識','世界遺産の定義','世界遺産リストから抹消される2つの場合は？','①「顕著な普遍的価値」が失われるほど遺産の状況が悪化している場合 ②世界遺産の本来の特徴が推薦の時点で既に人間の行為により脅かされており、推薦時に締約国が作成した改善措置が予定された期間内に実施されなかった場合','');
+addQ('基礎知識','世界遺産の定義','危機遺産の毎年の審議で決定される3つの事項は？','追加の措置が必要かどうか／危機遺産リストから削除可能な状況に改善しているかどうか／登録した際の「顕著な普遍的価値」が損なわれていた場合は世界遺産リストから抹消すべきかどうか','');
+addQ('基礎知識','世界遺産の定義','世界遺産リストから抹消される2つの場合は？','「顕著な普遍的価値」が失われるほど遺産の状況が悪化している場合／世界遺産の本来の特徴が推薦の時点で既に人間の行為により脅かされており、推薦時に締約国が作成した改善措置が予定された期間内に実施されなかった場合','');
 addQ('基礎知識','世界遺産の定義','抹消の手続き上の制約は？','世界遺産委員会は一方的に削除することはせず、世界遺産センターが締約国と協議を行い現状の情報提供を求める／提出された状況を基に審議が行われ多数決により決議される／締約国と協議が行われていない場合は抹消を決定することはできない','');
 
 // --- 抹消された3件 ---
@@ -4759,7 +5386,7 @@ addStory('基礎知識','登録基準','10基準の統合と、認められな�
 addQ('基礎知識','真正性と完全性','2005年の作業指針改訂による登録基準(vi)の運用変化の意図は？','アジアやアフリカの文化などの無形の文化側面や、ヨーロッパなどの歴史的都市景観における無形の側面を評価することを念頭に、運用が少し柔軟になったと考えられる','日本の文化遺産では認められることが多い。また(vi)のみで登録されている遺産は、他の登録基準が認められにくい「負の遺産」と考えられるものが多い。');
 addQ('基礎知識','真正性と完全性','登録基準(vii)に含まれる、異なる2つの考え方は？','客観的に測定可能な「最高の自然現象」と、客観的な評価が難しい「並はずれた自然美と美的重要性」','自然美や美的重要性を評価する方法として、文化遺産や文化的景観に対する真正性の評価とは異なるアプローチを採らなければならない。');
 addQ('基礎知識','真正性と完全性','登録基準(vii)が認められた代表例は？','ロック・アイランドの南部ラグーン（パラオ、火山活動によってできた美しい景観）／屋久島（ヤクスギを中心とする鬱蒼とした原生林の景観）','');
-addQ('基礎知識','真正性と完全性','登録基準(viii)が対象とする4つの点は？','①地球の歴史 ②生命の記録 ③地形の変化において進行中の重要な地質学的プロセス ④重要な地形もしくは地理学上の特徴','現在進行中の地質学的プロセスを含む地層や地形だけでなく、恐竜や古代生物の化石遺跡も対象。');
+addQ('基礎知識','真正性と完全性','登録基準(viii)が対象とする4つの点は？','地球の歴史／生命の記録／地形の変化において進行中の重要な地質学的プロセス／重要な地形もしくは地理学上の特徴','現在進行中の地質学的プロセスを含む地層や地形だけでなく、恐竜や古代生物の化石遺跡も対象。');
 addQ('基礎知識','真正性と完全性','日本で登録基準(viii)が認められている遺産は？','2024年3月時点でない／小笠原諸島がプレートの露出した「ボニナイト」でこの基準も含んで推薦したが認められなかった','');
 addQ('基礎知識','真正性と完全性','登録基準(viii)が認められた代表例は？','カナイマ国立公園（ベネズエラ、プレート活動によって形成され風雨に削られた卓状台地）／ダイナソール州立公園（カナダ、世界最大級の恐竜化石層）','');
 addQ('基礎知識','真正性と完全性','登録基準(ix)を客観的に評価するためのIUCNの取り組みは？','森林や湿地、海洋および沿岸地域、山地、小島嶼の生態系、北方の森林などでIUCNと関連団体が継続的な研究を行っている','');
@@ -4770,7 +5397,7 @@ addQ('基礎知識','真正性と完全性','登録基準(x)を客観的に評�
 // --- 真正性 ---
 addQ('基礎知識','真正性と完全性','「真正性」が求められる遺産の種類と、その位置づけは？','文化遺産に求められる概念／文化遺産が持つ価値を評価する上で最も重視される指標','');
 addQ('基礎知識','真正性と完全性','真正性で証明が求められる内容と、その考え方の元となった憲章は？','建造物や景観などの文化遺産やその価値が、形状や意匠・素材・用途・機能などの点において、それぞれの文化的背景の独自性や伝統を継承していること／1964年のヴェネツィア憲章','歴史的建造物の保存と修復に関する憲章。');
-addQ('基礎知識','真正性と完全性','真正性の条件となる属性8つは？','①形状と意匠 ②材料と材質 ③用途と機能 ④伝統と技能、管理体制 ⑤所在地と周辺環境 ⑥言語と、無形遺産のその他の要素 ⑦精神性と感性 ⑧その他の内部・外部要素','⑦精神性や感性を適用するのは簡単ではないが、伝統や文化的連続性を維持している共同体にとってはその土地の特徴や土地の感覚を示す重要な指標となる。');
+addQ('基礎知識','真正性と完全性','真正性の条件となる属性8つは？','形状と意匠／材料と材質／用途と機能／伝統と技能、管理体制／所在地と周辺環境／言語と、無形遺産のその他の要素／精神性と感性／その他の内部・外部要素','⑦精神性や感性を適用するのは簡単ではないが、伝統や文化的連続性を維持している共同体にとってはその土地の特徴や土地の感覚を示す重要な指標となる。');
 addQ('基礎知識','真正性と完全性','真正性の属性を判断するための「証拠」の定義は？','文化遺産の本質や特性、意味、歴史を知ることを可能にする、全ての物証や伝承、表象的存在','そうした証拠を利用することで、芸術的側面や歴史的側面、社会的側面、科学的側面について詳しく検討することが可能になる。');
 addQ('基礎知識','真正性と完全性','締約国が推薦書作成時に真正性について求められることは？','真正性の属性を全て特定する必要があり、「真正性の言明」の中ではその属性の1つ1つでどれほどの真正性があるのかを証拠を示して証明しなければならない','');
 addQ('基礎知識','真正性と完全性','シリアル・サイトにおける真正性の評価と、そのリスクは？','個別の構成資産の真正性だけでなく資産全体としての真正性が評価される／1つの構成資産の真正性が損なわれた場合、その遺産を構成資産から削除しなければ遺産全体の真正性が損なわれていると判断され、遺産全体が世界遺産リストから抹消されることにもなりかねない','ジョージアの『ゲラティ修道院』がその実例。');
@@ -4784,7 +5411,7 @@ addQ('基礎知識','真正性と完全性','ワルシャワの歴史地区が�
 // --- 完全性 ---
 addQ('基礎知識','真正性と完全性','「完全性」が求められる遺産の種類と、その内容は？','全ての世界遺産に求められる概念／「顕著な普遍的価値」を構成するために必要な要素が全て含まれ、長期的な保護のための法律などの体制も整えられていること','真正性が文化遺産のみに求められるのと対照的。');
 addQ('基礎知識','真正性と完全性','完全性が文化遺産にも求められるようになった経緯は？','もともとは自然遺産の価値を評価するための概念だったが、文化遺産でも都市景観や文化的景観のように遺産の内部に多くの要素が含まれる遺産が審議されるようになり、2005年の作業指針の改訂で文化遺産にも求められるようになった','');
-addQ('基礎知識','真正性と完全性','完全性を証明する条件3点は？','①「顕著な普遍的価値」を表現するのに必要な要素が全て含まれているか ②遺産の重要性を示す特徴や背景を不足なく代表するために適切な大きさが確保されているか ③開発あるいは管理放棄による負の影響を受けていないか','');
+addQ('基礎知識','真正性と完全性','完全性を証明する条件3点は？','「顕著な普遍的価値」を表現するのに必要な要素が全て含まれているか／遺産の重要性を示す特徴や背景を不足なく代表するために適切な大きさが確保されているか／開発あるいは管理放棄による負の影響を受けていないか','');
 addQ('基礎知識','真正性と完全性','文化遺産における完全性の具体的な要件は？','遺産の価値を証明する構成資産が全て含まれていること／劣化の進行がコントロールされていること／歴史的な街並や文化的景観など生きている遺産の場合は独自性を特徴づける関係性や動的な機能が維持されていること／景観に悪影響を与える恐れのある開発が行われていないこと／推薦書で「顕著な普遍的価値」を示すとされる時代と実際の構成資産の年代が一致していること','時代や価値の異なる不必要な遺産が含まれていたり、不必要な範囲まで含まれていてはいけない。');
 addQ('基礎知識','真正性と完全性','自然遺産における完全性の考え方と、人間活動の扱いは？','生物学的な過程や地形上の特徴が比較的無傷であることが求められる／ただしどの自然遺産でも完全な原生地域であることは難しく、自然遺産もまた人間との関わりの中で常に変化する動的なもの／自然遺産の中での人間の活動は、生態学的に持続可能なその地域の「顕著な普遍的価値」と矛盾しないものでなければならない','生物学的多様性と文化的多様性は密接に関連して相互依存しており、伝統的社会や地域社会、先住民族の活動などを含む人間の活動は自然の中で多く行われている。');
 addQ('基礎知識','真正性と完全性','登録基準(vii)における完全性の条件は？','遺産の美しさを維持するために不可欠な広さを持っていること／例えば滝を中心とした景観の場合は隣接集水域や下流域を含むことが求められる','');
@@ -4800,15 +5427,15 @@ addQ('基礎知識','世界遺産の概念','グローバル・ストラテジ�
 addQ('基礎知識','世界遺産の概念','グローバル・ストラテジー採択の背景となった批判は？','登録されている文化遺産の内容が西欧の中世から19世紀にかけての宮殿や城塞、キリスト教関連の教会や修道院など「記念碑」的な遺産に偏っており、また世界遺産を1件も持たない締約国があるなど地域的な不均衡もあったため、世界遺産リストが正しく世界の文化や文明・生態系・地理環境を代表していないのではないかとの批判','');
 addQ('基礎知識','世界遺産の概念','グローバル・ストラテジーに基づきUNESCOが推進した取り組みは？','選考基準や方法の見直し／テーマ別研究や地域別比較研究の推進／アフリカ地域の登録の強化／十分に記載されていない文化遺産の分野の検討／棚田や産業遺産、現代建築に関する研究／文化的景観の「関連する景観」に関する検討／登録基準の観点からの地質に関する遺産の検討','');
 addQ('基礎知識','世界遺産の概念','採択10周年の2004年・第28回委員会で行われた分析は？','ICOMOSとIUCNが用意した最新の世界遺産リストと危機遺産リストについて、地域や時系列、地理、テーマに沿って分析が行われた','');
-addQ('基礎知識','世界遺産の概念','2004年のICOMOSの分析が示した、不均衡の2つの原因は？','①世界遺産の推薦過程や、文化財の保護と管理に関する構造的な原因 ②遺産の特性が認識・評価される方法に関する数値化できない原因','');
+addQ('基礎知識','世界遺産の概念','2004年のICOMOSの分析が示した、不均衡の2つの原因は？','世界遺産の推薦過程や、文化財の保護と管理に関する構造的な原因／遺産の特性が認識・評価される方法に関する数値化できない原因','');
 addQ('基礎知識','世界遺産の概念','2004年のIUCNの分析が示した内容は？','自然遺産と複合遺産は世界の生息地と地域がバランスよく記載されているが、熱帯や温帯の草原やサバンナ、湖、ツンドラ、極地、寒冬砂漠などの分野が不足している','');
-addQ('基礎知識','世界遺産の概念','グローバル・ストラテジーを進める上で欠かせない2点と、そのため導入された制度は？','①遺産の適切な評価を行うための暫定リストの作成 ②不備のない推薦書を作成するための能力構築（Capacity-building）／プレリミナリー・アセスメントやアップストリーム・プロセスが導入された','');
+addQ('基礎知識','世界遺産の概念','グローバル・ストラテジーを進める上で欠かせない2点と、そのため導入された制度は？','遺産の適切な評価を行うための暫定リストの作成／不備のない推薦書を作成するための能力構築（Capacity-building）／プレリミナリー・アセスメントやアップストリーム・プロセスが導入された','');
 
 // --- シリアル・サイト ---
 addQ('基礎知識','世界遺産の概念','シリアル・サイトの定義と、登録対象となる3類型は？','文化や歴史的背景、自然環境などが共通する遺産を、全体として「顕著な普遍的価値」を持つ1つの世界遺産として登録したもの／「同一の歴史・文化群に属するもの」「地理区分を特徴づける同種の資産であるもの」「同じ地質学的・地形学的、または同じ生物地理区分もしくは同種の生態系に属するもの」','最近では構成資産をつなぐストーリーも重視される。');
 addQ('基礎知識','世界遺産の概念','シリアル・サイトにおける「顕著な普遍的価値」の考え方は？','必ずしも個々の構成資産がOUVを持っている必要はなく、全体としてOUVを持っていればよい／構成資産に含まれる個々の遺産の価値ではなく、一連の遺産で証明される全体の価値が重視される','');
 addQ('基礎知識','世界遺産の概念','シリアル・サイトで構成資産を追加する場合の手続きは？','最初に登録される遺産が「顕著な普遍的価値」を持っていれば、構成資産を追加するために複数年にわたる審議を前提とした推薦書を提出することができる','世界遺産登録を目指す遺産はシリアル・ノミネーション・サイトとも呼ばれる。');
-addQ('基礎知識','世界遺産の概念','シリアル・サイトの3つのパターンと、それぞれの例は？','①1つの国内に全構成資産が含まれる＝古都京都の文化財 ②国境を越えるトランスバウンダリー・サイト＝ヨーロッパの大温泉都市群（7カ国） ③大陸を越えるトランスコンチネンタル・サイト＝ル・コルビュジエの建築作品','国境を越える場合は、関係締約国は遺産全体を管理する共同管理委員会などの機関を設立しなければならない。');
+addQ('基礎知識','世界遺産の概念','シリアル・サイトの3つのパターンと、それぞれの例は？','1つの国内に全構成資産が含まれる＝古都京都の文化財／国境を越えるトランスバウンダリー・サイト＝ヨーロッパの大温泉都市群（7カ国）／大陸を越えるトランスコンチネンタル・サイト＝ル・コルビュジエの建築作品','国境を越える場合は、関係締約国は遺産全体を管理する共同管理委員会などの機関を設立しなければならない。');
 addQ('基礎知識','世界遺産の概念','トランスコンチネンタル・サイトの課題は？','法制度や保全体制の各国の差異が大きく、遺産全体としての管理・監督が難しい','');
 
 // --- トランスバウンダリー・サイト ---
@@ -4821,9 +5448,9 @@ addQ('基礎知識','世界遺産の概念','国境を接していてもトラ�
 // --- MAB計画 ---
 addQ('基礎知識','世界遺産の概念','「人間と生物圏計画（MAB計画）」の立ち上げ年・主体と、その目的は？','UNESCOが1971年に立ち上げた研究計画／社会生活や商工業活動などの人間の営みと自然環境の相互関係を理解し、環境資源の持続可能な利用と環境保全を促進すること','人類と環境の接点に注目し、そこで起こりつつある問題の解決を目指す。生物多様性と経済活動を機能的に結びつけるための科学的な研究やモニタリング、人材育成などが行われている。');
 addQ('基礎知識','世界遺産の概念','MAB計画と世界遺産の自然遺産との違いは？','自然遺産が「顕著な普遍的価値」を持つ自然を厳格に保護することを目的としているのに対し、MAB計画では自然保護と地域社会が両立した持続可能な発展を目指している','');
-addQ('基礎知識','世界遺産の概念','MAB計画の主な活動4つは？','①生物圏の変化を特定し評価 ②生態系と社会・経済的なプロセスの相互関係の研究 ③人間の基本的な福祉と住みやすい環境の確保 ④知識の交換と伝達を促進','④は環境問題とその解決策についての知識の交換と伝達を促し、持続可能な開発のための環境教育を促進する。');
+addQ('基礎知識','世界遺産の概念','MAB計画の主な活動4つは？','生物圏の変化を特定し評価／生態系と社会・経済的なプロセスの相互関係の研究／人間の基本的な福祉と住みやすい環境の確保／知識の交換と伝達を促進','④は環境問題とその解決策についての知識の交換と伝達を促し、持続可能な開発のための環境教育を促進する。');
 addQ('基礎知識','世界遺産の概念','「生物圏保存地域」の定義と、日本での呼称・登録例は？','生物多様性を保全し、地域の自然資源を活用した持続可能な経済活動を進めるモデル地域／日本では「ユネスコエコパーク」の名前でも知られ、「大台ヶ原・大峯山・大杉谷」（紀伊山地の大峯山を含む）や「屋久島・口永良部島」などが登録されている','');
-addQ('基礎知識','世界遺産の概念','生物圏保存地域の三段階の区域と、それぞれの内容は？','①核心地域（コア・エリア）＝生物多様性を保全する区域そのもの ②緩衝地帯（バッファー・ゾーン）＝生物多様性の保全を妨げる活動を制限する区域 ③移行地帯（トランジション・エリア）＝保全を基調とした持続可能な社会経済開発ができる区域','重層的に保護している。');
+addQ('基礎知識','世界遺産の概念','生物圏保存地域の三段階の区域と、それぞれの内容は？','核心地域（コア・エリア）＝生物多様性を保全する区域そのもの／緩衝地帯（バッファー・ゾーン）＝生物多様性の保全を妨げる活動を制限する区域／移行地帯（トランジション・エリア）＝保全を基調とした持続可能な社会経済開発ができる区域','重層的に保護している。');
 addQ('基礎知識','世界遺産の概念','世界遺産が生物圏保存地域から援用した概念と、採用しなかった概念は？','援用＝「核心地域」と「バッファー・ゾーン」（核心地域に該当する範囲をOUVを持つ「プロパティ」としている）／採用せず＝トランジション・エリア','');
 addQ('基礎知識','世界遺産の概念','「広域な周辺環境（wider setting）」とは何か、その課題は？','バッファー・ゾーンの外側のこと／そこでの森林伐採や都市開発などが大きな課題となっており、世界遺産のOUVに影響を与える場合は諮問機関から懸念や危機遺産リストへの記載勧告が出されることもある','トランジション・エリアの概念を採用していないために生じる問題。');
 
@@ -4852,7 +5479,7 @@ addQ('基礎知識','モニタリングと推薦','世界遺産センターが�
 
 // --- 定期報告 ---
 addQ('基礎知識','モニタリングと推薦','「定期報告」の定義と、報告主体・提出先は？','締約国が世界遺産委員会を通じてUNESCO総会に提出する報告／自国の世界遺産の保全状況や、条約を履行するために自国で採った立法・行政措置などを自己評価して報告','可能な限り締約国が自主的に行い、世界遺産センターは定期報告のプロセスの調整や推進を行う。');
-addQ('基礎知識','モニタリングと推薦','定期報告の主な目的4点は？','①締約国の世界遺産条約の履行状況を評価すること ②世界遺産リストに記載された遺産のOUVが守られているか評価すること ③変化する周辺状況や遺産の保全状況を記録し最新の情報を提供すること ④条約の履行と保全に関して締約国間で地域協力や情報・経験の共有などを行うための仕組みを提供すること','');
+addQ('基礎知識','モニタリングと推薦','定期報告の主な目的4点は？','締約国の世界遺産条約の履行状況を評価すること／世界遺産リストに記載された遺産のOUVが守られているか評価すること／変化する周辺状況や遺産の保全状況を記録し最新の情報を提供すること／条約の履行と保全に関して締約国間で地域協力や情報・経験の共有などを行うための仕組みを提供すること','');
 addQ('基礎知識','モニタリングと推薦','定期報告のサイクルと、地域の順番は？','6年ごとに1サイクル／①アラブ ②アフリカ ③アジア・太平洋 ④ラテンアメリカ・カリブ海地域 ⑤ヨーロッパ・北米の順で毎年地域を変えて報告／6年目は定期報告のシステムの評価と改善','');
 addQ('基礎知識','モニタリングと推薦','定期報告がトランスバウンダリー・サイトにとって持つ意味は？','世界遺産がある地域ごとの交流や協力のためのよい機会であり、特にトランスバウンダリー・サイトの場合は関係国の間で積極的に交流を行い協力することが望ましい','');
 
@@ -4860,7 +5487,7 @@ addQ('基礎知識','モニタリングと推薦','定期報告がトランス�
 addQ('基礎知識','モニタリングと推薦','リアクティヴ・モニタリングの定義と、決定年・委員会は？','世界遺産センターやUNESCOの他部署、世界遺産委員会の諮問機関などが、脅威にさらされている特定の世界遺産の保全状況について行う報告／2015年の第39回世界遺産委員会で決定し作業指針にも加えられた','');
 addQ('基礎知識','モニタリングと推薦','リアクティヴ・モニタリングが決定された背景と目的は？','2009年にドイツの「ドレスデン・エルベ渓谷」が世界遺産リストから抹消されたことを受け、保護・保全のための世界遺産委員会の決議の確実な履行や、世界遺産リストから抹消される遺産を無くすことを目的とした','');
 addQ('基礎知識','モニタリングと推薦','リアクティヴ・モニタリングで締約国が個別報告書と影響調査を提出する場合は？','予期せぬ状況に陥った場合や、「顕著な普遍的価値」や保全状況に影響を与えかねない工事が行われる場合など','これにより危機に陥る可能性がある遺産の報告を直ちに受けることができるようになった。');
-addQ('基礎知識','モニタリングと推薦','リアクティヴ・モニタリングの報告書に記載が必要な3点は？','①世界遺産委員会に対して最後に報告が行われてから、遺産への脅威もしくは保全に関して明らかな改善が見られるかどうか ②遺産の保全状況報告に関する委員会の以前の決定に対してどのようなフォローアップが行われたか ③登録時に認められたOUVや真正性・完全性に対する脅威や、そうした価値自体が損なわれたり失われたりしていないか','');
+addQ('基礎知識','モニタリングと推薦','リアクティヴ・モニタリングの報告書に記載が必要な3点は？','世界遺産委員会に対して最後に報告が行われてから、遺産への脅威もしくは保全に関して明らかな改善が見られるかどうか／遺産の保全状況報告に関する委員会の以前の決定に対してどのようなフォローアップが行われたか／登録時に認められたOUVや真正性・完全性に対する脅威や、そうした価値自体が損なわれたり失われたりしていないか','');
 addQ('基礎知識','モニタリングと推薦','リアクティヴ・モニタリングの対象となる遺産は？','危機遺産リストに記載されている遺産／記載される可能性がある遺産／世界遺産リストから抹消される可能性のある遺産','');
 addQ('基礎知識','モニタリングと推薦','報告書の提出期限は、遺産の状況によりどう異なるか？','世界遺産リスト記載の遺産＝審議が行われる世界遺産委員会の前年の12月1日まで／危機遺産リスト記載の遺産や緊急を要する事態に陥っている遺産＝審議が行われる世界遺産委員会の年の2月1日まで','');
 addQ('基礎知識','モニタリングと推薦','報告を受けた世界遺産委員会の対応は？','事態が重大でなく復元が可能と判断した場合＝世界遺産基金を使った技術協力の提案や諮問機関による協力／報告内容が不十分な場合＝リアクティヴ・モニタリング調査団の派遣や専門家による指導／危機遺産リスト記載遺産でその価値が失われている場合＝締約国に通知した後に世界遺産リストからの抹消を決定','');
@@ -4868,15 +5495,15 @@ addQ('基礎知識','モニタリングと推薦','報告を受けた世界遺�
 // --- 緊急的登録推薦 ---
 addQ('基礎知識','モニタリングと推薦','緊急的登録推薦が適用される条件は？','諮問機関などの報告からOUVがあることに疑いがないと考えられる遺産が、災害などの自然現象や戦争・破壊などの人的行為による被害を受けている場合、もしくは重大で具体的な危機に直面している場合','通常の推薦プロセスを経ずに審議が行われ、世界遺産リスト記載と同時に危機遺産リストにも記載される。');
 addQ('基礎知識','モニタリングと推薦','緊急的登録推薦における暫定リストの扱いは？','推薦する遺産は暫定リストに記載されている必要があるが、記載されていない場合は直ちに記載しなければならない','締約国は緊急的登録推薦の要請と同時に推薦書を提出する。');
-addQ('基礎知識','モニタリングと推薦','緊急的登録推薦の推薦書に記載が必要な5点は？','①遺産の内容と正確な境界線 ②登録基準に照らした「顕著な普遍的価値」の証明 ③完全性と真正性の証明 ④保護管理体制についての説明 ⑤緊急性の性質や、遺産への被害と特定の危機の内容と程度、遺産を確実に保護するために世界遺産委員会が直ちに動かなければならない理由の説明','必要であれば登録後できるだけ早く世界遺産センターと諮問機関によって追加調査（フォローアップ・ミッション）が行われる。');
+addQ('基礎知識','モニタリングと推薦','緊急的登録推薦の推薦書に記載が必要な5点は？','遺産の内容と正確な境界線／登録基準に照らした「顕著な普遍的価値」の証明／完全性と真正性の証明／保護管理体制についての説明／緊急性の性質や、遺産への被害と特定の危機の内容と程度、遺産を確実に保護するために世界遺産委員会が直ちに動かなければならない理由の説明','必要であれば登録後できるだけ早く世界遺産センターと諮問機関によって追加調査（フォローアップ・ミッション）が行われる。');
 
 // --- 遺産影響評価 ---
 addQ('基礎知識','モニタリングと推薦','遺産影響評価（HIA）の定義と、関連文書の変遷は？','世界遺産リストに記載された遺産が持つ「顕著な普遍的価値」の属性が受ける影響について評価するもの／2009年にICOMOSが開催した国際ワークショップで指針が示され、2011年に「世界文化遺産の遺産影響評価についてのガイダンス」にまとめられた／2022年にはUNESCOと諮問機関によって「世界遺産における影響評価のためのガイダンスおよびツールキット」が発行','');
 addQ('基礎知識','モニタリングと推薦','ガイダンスとツールキットにおける「影響評価」の説明は？','「行動する前に考えること」','世界遺産の内部や周辺で計画・実施される開発プロジェクトによる圧力が近年特に高まっているため、実施判断を行う前にHIAを行うことが重要とされる。');
 addQ('基礎知識','モニタリングと推薦','作業指針が遺産影響評価について求めていることは？','世界遺産の遺産影響評価を行い、「顕著な普遍的価値」に対する正と負の両方の影響を特定し、世界遺産とバッファー・ゾーン、「広域な周辺環境」を含むエリアでの負の影響の緩和措置を採らなければならない','それがOUVの長期的な保護と、災害や気候変動に対する対応力の強化につながる。');
-addQ('基礎知識','モニタリングと推薦','遺産影響評価の11の手順のうち、最初の4つは？','①スクリーニング（影響評価の必要性の可否や、遺産のOUVの属性の洗い出し）②スコーピング（どのデータ・影響・地理的範囲・期間を対象とするかの方法書の作成）③ベースライン（現在のOUVやその属性の確認）④予定された行為と代替案（計画の確認と合理的な代替案の検討）','');
-addQ('基礎知識','モニタリングと推薦','遺産影響評価の11の手順のうち、中盤の3つは？','⑤影響の特定と予測（計画や代替案が実施された場合の負もしくは正の影響、環境や社会その他への影響の検討）⑥影響評価（影響の大きさの測定）⑦緩和と強化（負の影響を回避または軽減する代替案や緩和策の検討、正の影響を強化する可能性の検討）','');
-addQ('基礎知識','モニタリングと推薦','遺産影響評価の11の手順のうち、最後の4つは？','⑧報告（影響評価のプロセスと結論を伝える方法の検討）⑨報告書のレビュー（報告書が世界遺産委員会での意思決定の情報源になるかどうかの検討）⑩意思決定（計画は許可されるべきか、許可する場合は何を条件とすべきかの検討）⑪フォローアップ（どのような緩和策を実施すべきかの検討）','');
+addQ('基礎知識','モニタリングと推薦','遺産影響評価の11の手順のうち、最初の4つは？','スクリーニング（影響評価の必要性の可否や、遺産のOUVの属性の洗い出し）／スコーピング（どのデータ・影響・地理的範囲・期間を対象とするかの方法書の作成）／ベースライン（現在のOUVやその属性の確認）／予定された行為と代替案（計画の確認と合理的な代替案の検討）','');
+addQ('基礎知識','モニタリングと推薦','遺産影響評価の11の手順のうち、中盤の3つは？','⑤影響の特定と予測（計画や代替案が実施された場合の負もしくは正の影響、環境や社会その他への影響の検討）／⑥影響評価（影響の大きさの測定）／⑦緩和と強化（負の影響を回避または軽減する代替案や緩和策の検討、正の影響を強化する可能性の検討）','');
+addQ('基礎知識','モニタリングと推薦','遺産影響評価の11の手順のうち、最後の4つは？','⑧報告（影響評価のプロセスと結論を伝える方法の検討）／⑨報告書のレビュー（報告書が世界遺産委員会での意思決定の情報源になるかどうかの検討）／⑩意思決定（計画は許可されるべきか、許可する場合は何を条件とすべきかの検討）／⑪フォローアップ（どのような緩和策を実施すべきかの検討）','');
 
 // --- 歴史的都市景観 ---
 addQ('基礎知識','モニタリングと推薦','「歴史的都市景観」の定義と、採択年・文書名は？','文化・歴史的な価値や自然の価値の積み重なりと、伝統文化、経験の蓄積によって認識される都市の範囲／UNESCOが2011年に採択した「歴史的都市景観に関する勧告」で定義','「歴史地区」や「関連建造物群」などの概念を超えた、より広い都市の状況や地理的背景を含む。');
@@ -4923,7 +5550,7 @@ addQ('基礎知識','登録の流れ','推薦書「②内容」に記載する�
 addQ('基礎知識','登録の流れ','推薦書「③価値証明」に記載する内容は？','地理的内容や歴史的内容などの事実情報の概要／人々にとって持続的な「顕著な普遍的価値」を示す資質の概要／記載が提案される根拠となる登録基準とその価値証明／完全性と真正性の言明／保護管理の要件／類似する遺産との比較分析／世界遺産委員会が採択する「顕著な普遍的価値の言明」案','');
 addQ('基礎知識','登録の流れ','推薦書「④保全状況と遺産に影響を与える諸条件」に記載する内容は？','現在の保全状況／開発圧力や環境圧力、自然災害と防災措置などの遺産への影響要因／世界遺産への訪問客数と許容可能な訪問客数／遺産とバッファー・ゾーン内の居住者数など','');
 addQ('基礎知識','登録の流れ','推薦書「⑤遺産の保護管理」に記載する内容は？','所有権の所在／法的規制や計画などの保護指定／保護措置を実施する方法／遺産がある自治体での関連する保護計画／その他の管理体制／保護のための資金源と規模／保護管理技術の専門性や研修の提供元／訪問者用の施設とインフラ／遺産の公開と広報に関する政策とプログラム／人員配置と専門知識など','');
-addQ('基礎知識','登録の流れ','推薦書「⑥モニタリング」以降に記載する内容は？','⑥保全状況を測定するための主要な指標、行政措置、過去にラムサール条約やMAB計画などの国際協定に出した報告書があればその報告結果 ⑦資料（写真や視聴覚資料の目録と使用許諾書、保護指定や遺産管理計画に関する文書、遺産の最近の記録、記録や史料の保管場所、参考文献）⑧管理機関の連絡先 ⑨締約国代表署名','');
+addQ('基礎知識','登録の流れ','推薦書「⑥モニタリング」以降に記載する内容は？','⑥保全状況を測定するための主要な指標、行政措置、過去にラムサール条約やMAB計画などの国際協定に出した報告書があればその報告結果／⑦資料（写真や視聴覚資料の目録と使用許諾書、保護指定や遺産管理計画に関する文書、遺産の最近の記録、記録や史料の保管場所、参考文献）／⑧管理機関の連絡先／⑨締約国代表署名','');
 
 // --- 登録後の変更 ---
 addQ('基礎知識','登録の流れ','「範囲の軽微な変更」の定義と、申請期限・承認方法は？','遺産の範囲に重大な影響を及ぼさず「顕著な普遍的価値」に影響を与えない変更／世界遺産委員会で審議が行われる年の2月1日までに申請書類を世界遺産センターに提出／世界遺産委員会で承認の決議が必要とされるが、多くの場合、諮問機関の確認を経た後で書類承認される','申請書類には変更の範囲、変更の概要、変更の理由、「顕著な普遍的価値」への貢献度、法的保護への影響などを記載する。');
@@ -4961,7 +5588,7 @@ addQ('基礎知識','憲章と条約','奈良文書が採択された年月・�
 addQ('基礎知識','憲章と条約','奈良会議が開催された背景にあった「誤解」とは？','伊勢神宮などで行われている遷宮が知られていたために、日本では遷宮のように解体して新しい材料を用いて建て直す修復方法が主流であるという誤解／これは真正性の前提とされるアナスティローシスとは相容れないと考えられた','遷宮＝定期的に新しい社殿を建ててご神体に遷っていただくこと。そのままでは日本の文化財の真正性が認められないという懸念があった。');
 addQ('基礎知識','憲章と条約','実際の日本の木造建造物の修復方法は？','気候が温暖で湿度が高く地震などの自然災害が多い日本では木造建造物の修復が頻繁に行われており、その際には解体を行わずに傷んだ部分のみを取り替える方法が採られていた／記録を残しながらできる限りオリジナルの部材を活かして修復を行う点で、ヴェネツィア憲章の考え方と通じる点も少なくなかった','');
 addQ('基礎知識','憲章と条約','奈良会議開催の背景にあった国際的な問題意識は？','世界遺産委員会やICOMOSの中にも、ヨーロッパ中心の価値観に基づく真正性では世界の多様な文化を評価することができないとの問題意識が広がっていた','そこで世界遺産条約を批准したばかりの日本が「真正性に関する奈良会議」を開催した。');
-addQ('基礎知識','憲章と条約','奈良文書の概要4点は？','①世界の文化と遺産の多様性は全人類にとって精神的かつ知的な豊かさのかけがえのない源である ②文化遺産の多様性は時間と空間の中に存在しており、他の文化とその信念体系の全ての側面を尊重することを求めている ③全ての形式や時代区分によって文化遺産を保全することは、その遺産が持つ価値に根ざしている ④固定された基準の中で価値と真正性の評価を下すことは不可能であり、全ての文化を尊重することは遺産が属する文化の文脈の中で考慮され評価されなければならない','');
+addQ('基礎知識','憲章と条約','奈良文書の概要4点は？','世界の文化と遺産の多様性は全人類にとって精神的かつ知的な豊かさのかけがえのない源である／文化遺産の多様性は時間と空間の中に存在しており、他の文化とその信念体系の全ての側面を尊重することを求めている／全ての形式や時代区分によって文化遺産を保全することは、その遺産が持つ価値に根ざしている／固定された基準の中で価値と真正性の評価を下すことは不可能であり、全ての文化を尊重することは遺産が属する文化の文脈の中で考慮され評価されなければならない','');
 addQ('基礎知識','憲章と条約','奈良文書が示した、多様性の限界は？','多様性の名の下に何でも許されるわけではなく、文化遺産の保全のための国際憲章や条約などを順守すべきである','世界の各文化が国際的な基準を守りながら、自らの文化遺産の保護の方法について真正性の観点から自ら考えるきっかけとなっている。');
 addQ('基礎知識','憲章と条約','奈良文書によって柔軟に評価されるようになった文化は？','日本の木造文化だけでなく、木造教会を持つ北欧や中欧の木の文化、日干し煉瓦などを用いるアフリカの土の文化、歴史地区や文化的景観など','');
 
@@ -4990,7 +5617,7 @@ addStory('基礎知識','憲章と条約','アテネ→ヴェネツィア→奈�
 // --- ラムサール条約 ---
 addQ('基礎知識','条約誕生の背景','ラムサール条約の正式名称・採択年月・場所は？','特に水鳥の生息地として国際的に重要な湿地に関する条約／1971年2月／イランのラムサールで開催された国際会議','');
 addQ('基礎知識','条約誕生の背景','ラムサール条約が定めている内容は？','水鳥の生息地を保全するために湿地の生態系と生物多様性を保護し、調査・保全のための措置を取ること／湿地を持続可能な範囲で適正に利用するために計画を立てて実行すること／各締約国が領域内にある国際的に重要な湿地を1カ所以上指定すること','');
-addQ('基礎知識','条約誕生の背景','ラムサール条約の3つの柱は？','①湿地の保全と再生（水鳥の生息地としてだけでなく人々の生活を支える重要な生態系として）②湿地の賢い利用（生態系を維持しながら持続的に活用する）③交流と学習（保全と再生や賢い利用を促進するための交流・学習・能力開発）','');
+addQ('基礎知識','条約誕生の背景','ラムサール条約の3つの柱は？','湿地の保全と再生（水鳥の生息地としてだけでなく人々の生活を支える重要な生態系として）／湿地の賢い利用（生態系を維持しながら持続的に活用する）／交流と学習（保全と再生や賢い利用を促進するための交流・学習・能力開発）','');
 
 // --- その他の条約 ---
 addQ('基礎知識','条約誕生の背景','文化財の不法な輸出入等を禁止する条約の正式名称・採択年・発効年は？','文化財の不法な輸入、輸出及び所有権譲渡の禁止、並びに防止の手段に関する条約／1970年の第16回UNESCO総会で採択／1972年に発効','保護管理体制の不備などにより盗難された文化財の密貿易などを禁止する条約。');
@@ -5071,7 +5698,7 @@ addQ('日本_文化遺産','縄文遺跡群','17の構成資産を構成する�
 
 // --- 登録基準 ---
 addQ('日本_文化遺産','縄文遺跡群','縄文遺跡群の登録基準は？','(iii)(v)','(iii)農耕に移行しない定住社会と精神世界、(v)立地と土地利用のあり方。');
-addQ('日本_文化遺産','縄文遺跡群','登録基準(iii)が証明しているとされる2つの内容は？','①農耕文化に移行せず採集・漁労・狩猟を基盤とした定住社会を生み出したこと ②豊穣への祈りや祖先崇拝など精緻で複雑な精神世界の存在','約1万年にわたり森林・水産資源を持続的に管理した点が前提。');
+addQ('日本_文化遺産','縄文遺跡群','登録基準(iii)が証明しているとされる2つの内容は？','農耕文化に移行せず採集・漁労・狩猟を基盤とした定住社会を生み出したこと／豊穣への祈りや祖先崇拝など精緻で複雑な精神世界の存在','約1万年にわたり森林・水産資源を持続的に管理した点が前提。');
 addQ('日本_文化遺産','縄文遺跡群','登録基準(v)が評価している点は？','気候変動による海水面の変化に対応しつつ、森林・水産資源を持続利用できる集落の立地や土地利用のあり方を、集落構造の変遷を通して証明していること','立地には河川・干潟の近く、ブナやクリの群生地など多様性がある。');
 
 // --- 6つのステージ ---
@@ -5151,7 +5778,7 @@ addQ('日本_文化遺産','日光の社寺','日光の社寺の登録基準は�
 addQ('日本_文化遺産','日光の社寺','登録基準(i)で名が挙がる大棟梁2名と画家は？','大棟梁：甲良豊後守宗広・平内大隅守応勝／画家：狩野探幽','個人の名を歴史に刻む類まれな芸術性を示すとされた。');
 addQ('日本_文化遺産','日光の社寺','登録基準(iv)で「完成した」とされる建築様式は？','権現造','東照宮と大猷院霊廟において完成し、その後の霊廟建築や神社建築に大きな影響を与えた。');
 addQ('日本_文化遺産','日光の社寺','「権現造」とはどのような建築様式か？','本殿と拝殿を「石の間」でつなぎ一棟とする様式','徳川家康の諡号が「東照大権現」であったことに由来する。');
-addQ('日本_文化遺産','日光の社寺','登録基準(vi)が評価している2つの側面は？','①徳川家康の霊廟として江戸時代の政治体制を支えた役割 ②神道や仏教など日本の宗教空間の特質を示す顕著な例であること','自然への原始的信仰から山や森を神格化した日本古来の宗教空間を受け継ぐ。');
+addQ('日本_文化遺産','日光の社寺','登録基準(vi)が評価している2つの側面は？','徳川家康の霊廟として江戸時代の政治体制を支えた役割／神道や仏教など日本の宗教空間の特質を示す顕著な例であること','自然への原始的信仰から山や森を神格化した日本古来の宗教空間を受け継ぐ。');
 addQ('日本_文化遺産','日光の社寺','日光の社寺が示す、日本独自の信仰形態とは？','神道と仏教が融合した「神仏融合」','宗教建築群と数百年を経たスギ林など周囲の自然環境との融合も含む。');
 
 // --- 歴史 ---
@@ -5222,7 +5849,7 @@ addQ('日本_文化遺産','富岡製糸場','富岡製糸場が操業を停止�
 
 // --- 富岡製糸場 ---
 addQ('日本_文化遺産','富岡製糸場','富岡製糸場の建設に関わったフランス人2名の役割は？','ポール・ブリュナ＝生糸検査技師（協力・指導）／オーギュスト・バスチャン＝技師（設計）','鏑川に面した崖の上に建てられた。');
-addQ('日本_文化遺産','富岡製糸場','富岡の地が選ばれた3つの理由は？','①伝統的に養蚕が盛んな地域のほぼ中央で繭を入手しやすい ②広い土地や用水の確保が可能 ③近隣で石炭（亜炭）が採掘された','亜炭＝不純物や水分を多く含み石炭化度が最も低いもの。地質学上は褐炭。');
+addQ('日本_文化遺産','富岡製糸場','富岡の地が選ばれた3つの理由は？','伝統的に養蚕が盛んな地域のほぼ中央で繭を入手しやすい／広い土地や用水の確保が可能／近隣で石炭（亜炭）が採掘された','亜炭＝不純物や水分を多く含み石炭化度が最も低いもの。地質学上は褐炭。');
 addQ('日本_文化遺産','富岡製糸場','富岡製糸場に見られる和洋折衷の建築技術は？','西洋＝木骨レンガ造・トラス構造・ガラス窓／日本＝屋根の日本瓦・目地の漆喰','レンガは日本人の瓦職人が製作した。建設は西洋建築に馴染みのなかった日本人大工が担当。');
 addQ('日本_文化遺産','富岡製糸場','富岡製糸場で導入された近代西洋の労働環境とは？','労働時間などの就業規則や七曜制','敷地内には工場施設のほか、指導者の住居・工女寄宿舎・病院なども建設された。');
 addQ('日本_文化遺産','富岡製糸場','繰糸場の建物の向きと長さは？','採光のため南面に140.4mの長辺を向けた東西に長い建物','蒸気釜所は動力・蒸気の伝達に都合がよい繰糸場中央部の北側に設置された。');
@@ -5265,7 +5892,7 @@ addQ('日本_文化遺産','ル・コルビュジエ','登録基準(vi)が示す
 // --- 3大概念 ---
 addQ('日本_文化遺産','ル・コルビュジエ','「モデュロール」の語源と定義は？','「Module（寸法）」＋「Section d\'or（黄金比）」の造語／建築の寸法を人体のサイズを基準に決めるルール','人体サイズとフィボナッチ数列を組み合わせて建築に応用した。');
 addQ('日本_文化遺産','ル・コルビュジエ','モデュロールで設定された住宅の天井の高さと、その根拠は？','226cm／平均的な西洋人の身長183cmの人間が片手を上げた指先までの高さ','');
-addQ('日本_文化遺産','ル・コルビュジエ','近代建築の五原則を5つ挙げると？','①ピロティ ②屋上庭園 ③自由な平面設計 ④水平連続窓 ⑤自由なファサード','①1階を柱で支え吹き抜けを作る、②水平な屋上により可能、③壁で空間を仕切り多様な部屋を作る、④幅広い窓で明るい室内、⑤様式にこだわらない自由なデザイン。');
+addQ('日本_文化遺産','ル・コルビュジエ','近代建築の五原則を5つ挙げると？','ピロティ／屋上庭園／自由な平面設計／水平連続窓／自由なファサード','①1階を柱で支え吹き抜けを作る、②水平な屋上により可能、③壁で空間を仕切り多様な部屋を作る、④幅広い窓で明るい室内、⑤様式にこだわらない自由なデザイン。');
 addQ('日本_文化遺産','ル・コルビュジエ','「ドミノ・システム」の語源と、その革新性は？','「Domus（家）」＋「Innovatio（革新）」の造語／鉄筋コンクリートの床面と柱、階段のみを主要要素とし、壁が建物を支える伝統的構造から脱却して自由な平面を可能にした','1914年に発表。');
 
 // --- 歴史 ---
@@ -5342,7 +5969,7 @@ addQ('日本_文化遺産','富士山','構成資産に含まれる湖沼4つは
 
 // --- 比較研究・課題 ---
 addQ('日本_文化遺産','富士山','富士山と最も似た特徴を持つとされる遺産と、その違いは？','泰山（中国）／泰山は山頂の宗教施設を参詣する登山であり、富士山の登拝とは異なる','芸術作品に影響を与えた遺産ではペルデュ山などがあるが、影響を与えた時代も範囲も異なる。');
-addQ('日本_文化遺産','富士山','2013年の世界遺産委員会で作成が求められた3つの計画は？','①文化的景観の手法を反映した全体構想（ヴィジョン）②来訪者に対する対策 ③登山道の保全計画','2016年に『ヴィジョン・各種戦略』と『世界文化遺産富士山包括的保存管理計画』が報告された。');
+addQ('日本_文化遺産','富士山','2013年の世界遺産委員会で作成が求められた3つの計画は？','文化的景観の手法を反映した全体構想（ヴィジョン）／来訪者に対する対策／登山道の保全計画','2016年に『ヴィジョン・各種戦略』と『世界文化遺産富士山包括的保存管理計画』が報告された。');
 addQ('日本_文化遺産','富士山','緩衝地帯が設定されていない区域と、その代替措置は？','本栖湖の北西辺および富士山域の東辺／山梨県景観条例による行為規制','資産は重要文化財・特別名勝・特別天然記念物・史跡・名勝などに指定され、国立公園・国有林野としても保護されている。');
 addQ('日本_文化遺産','富士山','富士山で現在検討されている交通対策は？','登山鉄道の敷設','来訪者対策の一環。');
 
@@ -5353,7 +5980,7 @@ addStory('日本_文化遺産','富士山','登拝と擬死再生、そして芸
 addQ('日本_文化遺産','白川郷','白川郷・五箇山の構成資産3集落と、それぞれの所在地は？','荻町（岐阜県白川村）・相倉（富山県南砺市）・菅沼（富山県南砺市）','どの集落も庄川沿いにある。規模の異なる3集落。');
 addQ('日本_文化遺産','白川郷','白川郷・五箇山の登録基準は？','(iv)(v)','(iv)独自の家屋の様式、(v)浄土真宗を基礎とした独自の文化圏と集落景観。');
 addQ('日本_文化遺産','白川郷','「合掌造り」の定義は？','この地域で見られる切妻造の茅葺き屋根をもつ家屋','小屋組内部を積極的に利用するために急な角度の山形の屋根を持つ。');
-addQ('日本_文化遺産','白川郷','登録基準(iv)が挙げる、急勾配の屋根が発展した3つの条件は？','①豪雪地帯 ②川沿いで風が強い ③大家族制が採られていた','規模が大きく60度近くの屋根勾配を持つ独自の家屋が発展した。');
+addQ('日本_文化遺産','白川郷','登録基準(iv)が挙げる、急勾配の屋根が発展した3つの条件は？','豪雪地帯／川沿いで風が強い／大家族制が採られていた','規模が大きく60度近くの屋根勾配を持つ独自の家屋が発展した。');
 addQ('日本_文化遺産','白川郷','切妻屋根の開口部が光と風を確保する構造になっている理由は？','小屋組を養蚕の作業場や桑の葉の収納場所として積極的に利用するため','');
 addQ('日本_文化遺産','白川郷','登録基準(v)が示す、この地域の精神的な絆の基礎は？','浄土真宗の信仰','鎌倉時代初期の親鸞を宗祖とする浄土信仰に基づく仏教の一派。これに基づく社会制度や生活習慣で独自の文化圏が作られた。');
 
@@ -5652,7 +6279,7 @@ addQ('日本_文化遺産','紀伊山地','丹生官省符神社の由来は？'
 addQ('日本_文化遺産','紀伊山地','紀伊山地の3つの参詣道の名称は？','大峯奥駈道・熊野参詣道・高野参詣道','高野参詣道は2016年の登録範囲拡大の際に「高野山町石道」から名称変更された。');
 addQ('日本_文化遺産','紀伊山地','大峯奥駈道の経路と距離は？','吉野山から大峰山寺、玉置神社を経て熊野本宮大社まで約87km','霊場「吉野・大峯」と「熊野三山」を南北に結ぶ修験者の修行の道。');
 addQ('日本_文化遺産','紀伊山地','大峯奥駈道の「宿」「靡」の数と、登録数は？','行場に「宿」と呼ばれる信仰上の拠点が約120カ所定められ、17世紀以降に75カ所の「靡」に整理された／うち57カ所が登録','靡＝神仏が宿るとされる拝所や行場。');
-addQ('日本_文化遺産','紀伊山地','熊野参詣道の3通りの経路と、紀路の分岐は？','①紀路（紀伊半島西岸）②伊勢路（東岸）③小辺路（中央部、高野山と熊野三山を結ぶ）／紀路は途中から山中を通る「中辺路」と海岸沿いを通る「大辺路」に分かれる','');
+addQ('日本_文化遺産','紀伊山地','熊野参詣道の3通りの経路と、紀路の分岐は？','紀路（紀伊半島西岸）／伊勢路（東岸）／小辺路（中央部、高野山と熊野三山を結ぶ）／紀路は途中から山中を通る「中辺路」と海岸沿いを通る「大辺路」に分かれる','');
 addQ('日本_文化遺産','紀伊山地','中辺路の経路と、含まれる構成資産は？','紀伊半島西海岸の田辺から半島を横断するように東へ進み熊野三山を巡る道／湯峯温泉（薬師信仰の地で湯垢離場）や熊野川の一部','京都や西日本から熊野三山へ参詣する道の中で最もよく使われた経路。湯垢離場＝熊野詣などの際に湯で体を清めた場所。熊野川の一部＝熊野本宮大社から熊野速玉大社までの約40km。');
 addQ('日本_文化遺産','紀伊山地','大辺路・伊勢路・小辺路のそれぞれの特徴は？','大辺路＝中辺路より距離が長く、奥駈をする修験者や西国巡礼を行う「三十三度行者」など専門の宗教者が通る／伊勢路＝伊勢神宮と熊野三山を結び、沿道に「熊野の鬼ヶ城附獅子巌」や「花の窟」が残る／小辺路＝熊野三山と高野山を最短距離で結び、熊野参詣道の中でも最も険しい','');
 addQ('日本_文化遺産','紀伊山地','高野参詣道として登録されている道と、町石道の特徴は？','高野山町石道（空海が切り拓き最もよく使われた）・三谷坂・女人道／町石道は一町ごとに五輪塔形の町石が置かれ、巡礼者は一町ごとに礼拝を重ねながら高野山を目指した','');
@@ -5683,7 +6310,7 @@ addQ('日本_文化遺産','百舌鳥古市','古墳時代の前期・中期の�
 addQ('日本_文化遺産','百舌鳥古市','飛鳥時代以降、有力者が権威を示す手段はどう変わったか？','古墳築造から仏教寺院の建設が主流となった','飛鳥時代が始まると墳墓は簡略化が進み、有力者層より下位の階層まで古墳築造をするようになった。');
 
 // --- 比較研究・保護 ---
-addQ('日本_文化遺産','百舌鳥古市','百舌鳥・古市古墳群が比較研究された3つの観点と対象遺産は？','①密集した多様な古墳＝メンフィスのピラミッド地帯、ギョベクリ・テペ ②4つの標準化した形式＝慶州の歴史地区 ③独特な葬送儀礼の痕跡＝始皇帝陵と兵馬俑坑','この3つの特徴を併せ持つ遺産は百舌鳥・古市古墳群以外にない。');
+addQ('日本_文化遺産','百舌鳥古市','百舌鳥・古市古墳群が比較研究された3つの観点と対象遺産は？','密集した多様な古墳＝メンフィスのピラミッド地帯、ギョベクリ・テペ／4つの標準化した形式＝慶州の歴史地区／独特な葬送儀礼の痕跡＝始皇帝陵と兵馬俑坑','この3つの特徴を併せ持つ遺産は百舌鳥・古市古墳群以外にない。');
 addQ('日本_文化遺産','百舌鳥古市','「仁徳天皇陵古墳」のように「陵」と「古墳」が併記される理由は？','「仁徳天皇陵」であると治定する宮内庁と、被葬者が特定できていないとする考古学者などとの間の折衷案','「陵」＝天皇や豪族など埋葬者が明らかな陵墓、「古墳」＝そうでない古い墳墓。治定＝古墳に埋葬されている人物を特定すること。');
 addQ('日本_文化遺産','百舌鳥古市','陵墓と史跡の保護に用いられる法令の違いは？','陵墓＝皇室典範と国有財産法／史跡＝文化財保護法','宮内庁が管理する陵墓は研究者や一般に対しても基本的に公開されていない。');
 
@@ -5790,7 +6417,7 @@ addQ('日本_文化遺産','石見銀山','1543年の種子島の鉄砲伝来と
 addQ('日本_文化遺産','石見銀山','1562年に石見銀山の支配権を確立した大名と、その政策は？','安芸地方の毛利氏／天皇や室町幕府に石見の銀を献上、温泉津や沖泊に家臣を置き一帯を支配','これにより銀山街道や港が整備された。');
 addQ('日本_文化遺産','石見銀山','石見銀山の最盛期における日本の交易の内容は？','中国の生糸・絹織物・陶磁器などを輸入し、銀・金・銅などの鉱業産品を輸出','こうした交易を通じて宗教や芸術などの交流も促進された。国内の政治的統一に伴い、石見銀山の技術が日本各地の金銀山へ広がった。');
 addQ('日本_文化遺産','石見銀山','1600年以降の石見銀山の支配と、奉行に登用された人物は？','徳川家康が政権を掌握し国内の金銀鉱山を接収、石見銀山も徳川氏の支配に／大久保長安を奉行として重用','「大久保間歩」「釜屋間歩」「紫間歩」などがこの時期の主要な間歩。間歩＝小規模な手掘りの坑道。');
-addQ('日本_文化遺産','石見銀山','江戸時代の銀山経営の2種類とは？','①山師が自らの資本を用いて経営を行い、銀山の支配者に上納銀を納める経営 ②奉行所（後の代官所）から公的資本が投入される経営','山師＝鉱脈を探して採掘場所を決め、許可を得て自らの資金で鉱山開発をする経営者。');
+addQ('日本_文化遺産','石見銀山','江戸時代の銀山経営の2種類とは？','山師が自らの資本を用いて経営を行い、銀山の支配者に上納銀を納める経営／奉行所（後の代官所）から公的資本が投入される経営','山師＝鉱脈を探して採掘場所を決め、許可を得て自らの資金で鉱山開発をする経営者。');
 addQ('日本_文化遺産','石見銀山','山師の安原伝兵衛の功績は？','釜屋間歩を中心に経営を行い、年間13,500kgもの上納を行って徳川家康に称賛された','');
 addQ('日本_文化遺産','石見銀山','石見銀山の銀生産量の推移は？','1620〜1640年頃の最盛期は年間1,000〜2,000kg／19世紀半ばには100kg台にまで減少','');
 addQ('日本_文化遺産','石見銀山','石見銀山が個人経営者へ払い下げられた経緯は？','1866年に毛利氏が江戸幕府に反抗して石見銀山に侵攻、1868年に江戸幕府が倒れ、1869年に新政府によって払い下げられた','');
@@ -5828,7 +6455,7 @@ addQ('日本_文化遺産','原爆ドーム','原子爆弾が爆発した高度�
 addQ('日本_文化遺産','原爆ドーム','原爆ドームの爆心地からの距離と、倒壊を免れた理由は？','爆心地の西北約150m／爆風が上方からほとんど垂直に働いたため建物の中心部分は倒壊を免れた','屋根や床は全て破壊され、壁の大部分は倒壊した。');
 addQ('日本_文化遺産','原爆ドーム','原爆ドームが世界遺産として評価された点は？','核兵器の究極的な廃絶と世界の恒久平和を訴える記念碑として','');
 addQ('日本_文化遺産','原爆ドーム','原爆ドームの登録基準は？','(vi)のみ','文化遺産21件中、単独基準はここだけ。');
-addQ('日本_文化遺産','原爆ドーム','登録基準(vi)が評価する2つの内容は？','①人類がつくり出した最も破壊的かつ非人道的な兵器の惨禍を伝える遺跡（廃墟）であり、原子爆弾投下直後の状態を万全に保存していること ②半世紀以上にわたり世界恒久平和の実現への希望を表してきた強力な象徴であること','');
+addQ('日本_文化遺産','原爆ドーム','登録基準(vi)が評価する2つの内容は？','人類がつくり出した最も破壊的かつ非人道的な兵器の惨禍を伝える遺跡（廃墟）であり、原子爆弾投下直後の状態を万全に保存していること／半世紀以上にわたり世界恒久平和の実現への希望を表してきた強力な象徴であること','');
 addQ('日本_文化遺産','原爆ドーム','登録時の登録基準(vi)にあった但し書きと、原爆ドームの扱いは？','「この基準は例外的な条件または、文化遺産もしくは自然遺産の他の基準とあわせて用いるべきである」との但し書きがあり、原爆ドームはその例外条件を満たしていた','当時は文化遺産と自然遺産で登録基準が分けられていた。');
 
 // --- 歴史 ---
@@ -5874,7 +6501,7 @@ addQ('日本_文化遺産','嚴島神社','厳島神社の社殿群が受けた�
 addQ('日本_文化遺産','嚴島神社','厳島神社の登録基準は？（法隆寺と同じ組み合わせ）','(i)(ii)(iv)(vi)','法隆寺と全く同じ4基準。');
 addQ('日本_文化遺産','嚴島神社','登録基準(i)が評価する景観の位置づけは？','山と海と社殿の三者が織りなす中心に社殿群が位置する景観は、日本の他の景勝地を評価する上での1つの美の基準となってきた','山などをご神体として祀り遥拝所をその麓に置いた日本の社殿建築の伝統を伝える。');
 addQ('日本_文化遺産','嚴島神社','登録基準(iv)が評価する個性は？','海上に展開する社殿群が周辺の自然と一体となった環境を持ち、平安時代の寝殿造の様式を山と海の境界を利用して実現している点','平安時代から鎌倉時代にかけての様式を現在まで継承し、自然崇拝から発展した古い形態の社殿群を知るための顕著な見本。');
-addQ('日本_文化遺産','嚴島神社','登録基準(vi)が示す2つの側面は？','①日本の風土に根差した多神教的な自然信仰から来る神道と深く関係し、日本の宗教的特徴を理解する上で重要 ②神仏習合と分離の歴史を示す文化遺産として日本の宗教空間の特質を伝える','');
+addQ('日本_文化遺産','嚴島神社','登録基準(vi)が示す2つの側面は？','日本の風土に根差した多神教的な自然信仰から来る神道と深く関係し、日本の宗教的特徴を理解する上で重要／神仏習合と分離の歴史を示す文化遺産として日本の宗教空間の特質を伝える','');
 
 // --- 歴史 ---
 addQ('日本_文化遺産','嚴島神社','厳島神社の社殿の創建は何年と伝わるか、また記録上の初出は？','創建は593年と伝わる／記録として残るのは811年以降','『日本後記』に「伊都岐嶋神」が登場し、平安時代を通じて安芸の国の著名な神社であったとされる。');
@@ -5918,7 +6545,7 @@ addQ('日本_文化遺産','宗像沖ノ島','宗像・沖ノ島の構成資産8
 addQ('日本_文化遺産','宗像沖ノ島','沖ノ島の位置と、周辺の岩礁の数は？','九州本土から約60kmの玄界灘の海上／3つの岩礁','玄界灘＝九州の北西部に広がる海域。');
 addQ('日本_文化遺産','宗像沖ノ島','宗像・沖ノ島の登録基準は？（(vi)が含まれない点に注意）','(ii)(iii)','信仰の島でありながら「思想・信仰」基準(vi)を含まず、"交流の証拠"として評価されている点が最頻出の引っかけ。');
 addQ('日本_文化遺産','宗像沖ノ島','【宗像沖ノ島】登録基準(ii)が示す内容は？','沖ノ島に残された奉献品が4〜9世紀の東アジアの国家間の重要な交流を示し、アジア大陸・朝鮮半島・日本列島の国々がアイデンティティを確立した時期に日本文化の形成に本質的な影響を与えた活発な交流を証明していること','奉献品の配置や祭場構成の変化は祭祀の変遷を伝える。');
-addQ('日本_文化遺産','宗像沖ノ島','登録基準(iii)が示す3つの内容は？','①沖ノ島に考古学的遺跡がほぼ無傷で残り4〜9世紀の祭祀の変化を証明 ②自然崇拝が航海の安全を祈る祭祀の基盤となり、人格神化した宗像三女神への信仰が生まれ継承された ③古墳群が宗像氏の存在を証明','');
+addQ('日本_文化遺産','宗像沖ノ島','登録基準(iii)が示す3つの内容は？','沖ノ島に考古学的遺跡がほぼ無傷で残り4〜9世紀の祭祀の変化を証明／自然崇拝が航海の安全を祈る祭祀の基盤となり、人格神化した宗像三女神への信仰が生まれ継承された／古墳群が宗像氏の存在を証明','');
 addQ('日本_文化遺産','宗像沖ノ島','沖ノ島の祭祀形態の変遷を4段階で挙げると？','岩上祭祀（4世紀後半〜5世紀）→岩陰祭祀（5世紀後半〜7世紀）→半岩陰・半露天祭祀（7世紀後半〜8世紀前半）→露天祭祀（8世紀〜9世紀）','巨岩の上→庇状の岩の陰→両方にまたがる→平らな場所へと移行した。');
 addQ('日本_文化遺産','宗像沖ノ島','宗像大社の社殿や境内が証明していることは？','自然崇拝から始まった沖ノ島の信仰が「宗像三女神」という人格を持った神への信仰へ発展し、その両者が共存しながら信仰を形作ったこと／「露天祭祀」から「社殿を持つ祭祀」へ発展したこと','');
 
@@ -5964,7 +6591,7 @@ addQ('日本_文化遺産','潜伏キリシタン','「潜伏キリシタン」�
 addQ('日本_文化遺産','潜伏キリシタン','「かくれキリシタン」の定義と、潜伏キリシタンとの違いは？','キリスト教信仰の解禁後も宣教師の指導下に入ることを拒み、自らの指導者を中心として独自の信仰を継続した人々／潜伏キリシタンは禁教期に隠れて信仰した人々','世界遺産が評価するのは潜伏キリシタンの方。');
 addQ('日本_文化遺産','潜伏キリシタン','潜伏キリシタンが集落を形成した場所の特徴は？','信仰を隠すため「天草の崎津集落」「外海の出津集落」のような海岸沿いや、禁教時代に移住先となった「黒島の集落」「頭ヶ島の集落」のような離島','小さな集落を形成して生き残った。');
 addQ('日本_文化遺産','潜伏キリシタン','潜伏キリシタン関連遺産の登録基準は？','(iii)のみ','信仰の話でありながら(vi)ではなく、「密かに信仰を続けた独自の文化的伝統の証拠」として(iii)単独で評価されている。');
-addQ('日本_文化遺産','潜伏キリシタン','登録基準(iii)が示す内容と、「伝統の終わり」の3パターンは？','17〜19世紀の2世紀以上にわたる禁教政策の下で密かに信仰を伝えた潜伏キリシタンの独特な宗教的伝統を物語る他に例を見ない証拠／①解禁後に教会堂が建てられた集落 ②「かくれキリシタン」となる集落 ③神道や仏教に転宗する集落','潜伏キリシタン固有の信仰形態の伝統が終わったことも示している。');
+addQ('日本_文化遺産','潜伏キリシタン','登録基準(iii)が示す内容と、「伝統の終わり」の3パターンは？','17〜19世紀の2世紀以上にわたる禁教政策の下で密かに信仰を伝えた潜伏キリシタンの独特な宗教的伝統を物語る他に例を見ない証拠／解禁後に教会堂が建てられた集落／「かくれキリシタン」となる集落／神道や仏教に転宗する集落','潜伏キリシタン固有の信仰形態の伝統が終わったことも示している。');
 addQ('日本_文化遺産','潜伏キリシタン','集落に残る教会堂が築かれた時期は？','キリスト教信仰が解禁された後','禁教期のものではない点に注意。');
 
 // --- 歴史 ---
@@ -6086,7 +6713,7 @@ addQ('日本_文化遺産','琉球王国','グスクが持っていた精神的�
 addQ('日本_文化遺産','琉球王国','琉球王国の登録基準は？（(iv)がない点に注意）','(ii)(iii)(vi)','建築技術(iv)がない点に注意。石積み技術そのものより、交流の窓口としての価値と御嶽信仰で評価されている。');
 addQ('日本_文化遺産','琉球王国','登録基準(ii)が証明する内容は？','琉球列島の立地的特性のため、日本と中国・朝鮮半島・東南アジア諸国との政治・経済・文化的な交流において中心的な役割を担う中で成立した琉球王国の特異性','');
 addQ('日本_文化遺産','琉球王国','登録基準(iii)が示す内容は？','グスク跡が、日本列島最南端の島嶼地域に広がった農村集落を基盤に成長した豪族層が政治的な統合と連合の過程で作り上げた防衛的な城塞施設の考古学的遺跡であり、今は失われた古い琉球社会を象徴していること','');
-addQ('日本_文化遺産','琉球王国','登録基準(vi)が示す2つの信仰形態は？','①各グスクが農村集落の信仰上の聖域的機能を持ち、現在もノロと呼ぶ職女を中心として祭祀が行われていること ②斎場御嶽などに見られる「ニライカナイ」と呼ばれる神の国が海の彼方にあるとする琉球独特の自然崇拝的な信仰','今も住民の生活や精神の中に生き続けている。');
+addQ('日本_文化遺産','琉球王国','登録基準(vi)が示す2つの信仰形態は？','各グスクが農村集落の信仰上の聖域的機能を持ち、現在もノロと呼ぶ職女を中心として祭祀が行われていること／斎場御嶽などに見られる「ニライカナイ」と呼ばれる神の国が海の彼方にあるとする琉球独特の自然崇拝的な信仰','今も住民の生活や精神の中に生き続けている。');
 addQ('日本_文化遺産','琉球王国','琉球王国の遺産群が沖縄県民にとって持つ意味は？','第二次世界大戦で大きな被害を受けた沖縄県民の精神的な拠り所','');
 
 // --- 歴史 ---
@@ -6149,7 +6776,7 @@ addQ('日本_自然遺産','知床','ウトロ側（オホーツク海側）の�
 addQ('日本_自然遺産','知床','冬期に沿岸の気温低下を強める、海氷の2つの効果は？','太陽光線を反射する（アルベド効果）／海水から大気への熱の放射を遮る','');
 
 // --- 海氷の仕組み ---
-addQ('日本_自然遺産','知床','知床が最も低緯度の季節海氷域となる3つの要因は？','①オホーツク海が表層と中層以深の塩分濃度が大きく異なる二重の海洋構造をしている ②周囲を陸で囲まれ外海との海水の交換が少ない ③冬期にシベリアの寒気が吹き抜ける','');
+addQ('日本_自然遺産','知床','知床が最も低緯度の季節海氷域となる3つの要因は？','オホーツク海が表層と中層以深の塩分濃度が大きく異なる二重の海洋構造をしている／周囲を陸で囲まれ外海との海水の交換が少ない／冬期にシベリアの寒気が吹き抜ける','');
 addQ('日本_自然遺産','知床','オホーツク海に表層低塩分水ができる理由は？','アムール川から大量の淡水が流れ込み、表層約50mに表層低塩分水が形成されるため','水面下約50〜60mを境にして塩分濃度の急増が見られる。海氷ができる際に塩分を排出するため海氷の塩分濃度は海水より低く、春に海氷が解けることも表層の低塩分層の維持に影響している。');
 addQ('日本_自然遺産','知床','「ブライン」とは何か、その働きは？','冬の海氷の生成時に塩分が排出されてできた低温の濃塩水／重いため降下して中層に塩分が濃く重たい中冷水を作り出す','夏に表層は太陽光で温められ軽くなるため、重い中冷水と混ざり合うことはない。');
 addQ('日本_自然遺産','知床','中冷水の存在が海氷の形成を助ける仕組みは？','約50mより下に表層より塩分濃度が濃く比重が大きな中冷水があるため、冬に冷やされて比重を増した表層水でもこの層を越えられず、表層約50mという浅い範囲で対流が起こる／そのため海水が冷えやすく海氷ができやすい','');
@@ -6537,7 +7164,7 @@ addQ('アジア','旧市街と歴史地区','395年と1054年にこの都市に�
 addQ('アジア','旧市街と歴史地区','コンスタンティノープルが陥落した年と、征服者は？','1453年／メフメト2世率いるオスマン帝国との激しい攻城戦の末に陥落し、ビザンツ帝国は滅亡','コンスタンティノープルはオスマン帝国の新首都となり、イスタンブルという呼称が徐々に定着した。');
 addQ('アジア','旧市街と歴史地区','メフメト2世が行った市街の再建策は？','帝国各地から移民を受け入れて荒廃していた市街の再開発を推進した','イスタンブルは首都として再び繁栄の時を迎えた。');
 addQ('アジア','旧市街と歴史地区','イスタンブルから首都が遷された年と、遷都先は？','1923年、トルコ共和国の成立に伴いアンカラに首都が遷された','');
-addQ('アジア','旧市街と歴史地区','世界遺産に登録された歴史地区の4つのエリアは？','①東端の歴史的建造物が並ぶスルタンアフメト地区 ②スレイマニエ・モスクとその周辺 ③ゼイレク・モスクとその周辺 ④旧市街の西側を囲む城壁','イスタンブルの街はボスフォラス海峡の東西でヨーロッパ側とアジア側に分かれ、ヨーロッパ側は金角湾を挟んで北側に新市街、南側に旧市街がある。');
+addQ('アジア','旧市街と歴史地区','世界遺産に登録された歴史地区の4つのエリアは？','東端の歴史的建造物が並ぶスルタンアフメト地区／スレイマニエ・モスクとその周辺／ゼイレク・モスクとその周辺／旧市街の西側を囲む城壁','イスタンブルの街はボスフォラス海峡の東西でヨーロッパ側とアジア側に分かれ、ヨーロッパ側は金角湾を挟んで北側に新市街、南側に旧市街がある。');
 
 // --- アヤ・ソフィア ---
 addQ('アジア','旧市街と歴史地区','アヤ・ソフィアの構造・規模と、建築上の評価は？','高さ約55m、最大直径約31mにも及ぶ巨大ドームと、その東西に半ドームを有したバシリカ式聖堂／ビザンツ建築の最高傑作と評される','内部は9世紀以降に描かれたキリスト教のイコン画と、イスラム教のカリグラフィーで装飾されている。');
@@ -6620,7 +7247,7 @@ addQ('アジア','交易都市と交易路','ザラフシャン・カラクム�
 addQ('アジア','交易都市と交易路','ザラフシャン・カラクム回廊が接する他の回廊は？','北は天山回廊、南にアムダリヤ回廊、東にフェルガナ渓谷回廊／南アラル海を経由してカスピ海回廊ともつながっている','シルク・ロード交易網の中心に位置していた。');
 addQ('アジア','交易都市と交易路','ザラフシャン・カラクム回廊の地形の区分は？','高地・山麓・渓谷・ステップ・オアシス・砂漠・デルタなど多様な地形が広がるが、東部の山岳地帯、中央部の平野地帯、西部の砂漠地帯に大分される','');
 addQ('アジア','交易都市と交易路','回廊が政治的にどのような立場にあったか？','シルク・ロードの長距離交流の基盤として重要な意義を持っていたため周辺を治めた帝国によって次々と支配されたが、歴史的には比較的独立性を維持していた','交易地であり政治的にも安定していたため、イラン人・テュルク系民族・モンゴル人・インド人・スラブ人・チベット人・中国人など各地から人々が集まった。');
-addQ('アジア','交易都市と交易路','回廊が繁栄した3つの時期は？','①ソグド人商人が台頭した5〜8世紀 ②マー・ワラー・アンナフルで都市文化が発達しイスラム世界や周辺国との交易が盛んになった10〜12世紀 ③モンゴル統治下において科学や文化・経済が大幅に発展し広大な領土で長距離貿易が促進された13〜17世紀','マー・ワラー・アンナフル＝中央アジア南部、アムダリヤ川北岸の地域。イスラム以前にソグディアナと呼ばれていた地域とほぼ重なる。アラビア語で「川の向こうの土地」の意味。');
+addQ('アジア','交易都市と交易路','回廊が繁栄した3つの時期は？','ソグド人商人が台頭した5〜8世紀／マー・ワラー・アンナフルで都市文化が発達しイスラム世界や周辺国との交易が盛んになった10〜12世紀／モンゴル統治下において科学や文化・経済が大幅に発展し広大な領土で長距離貿易が促進された13〜17世紀','マー・ワラー・アンナフル＝中央アジア南部、アムダリヤ川北岸の地域。イスラム以前にソグディアナと呼ばれていた地域とほぼ重なる。アラビア語で「川の向こうの土地」の意味。');
 addQ('アジア','交易都市と交易路','回廊で取引された物品と、東西の技術交流の内容は？','絹や貴金属、毛織物、革、宝石、香辛料、果物、馬、陶器など／紙や陶磁器の製造技術が中国から西域へ伝わる一方、西域からはガラスやワインの製造法や馬の飼育、金属工芸の技術などが中国へもたらされた','');
 addQ('アジア','交易都市と交易路','ソグド人の楽器「バルバド」が日本に伝わった経緯は？','中国を経由し、奈良時代の日本に「琵琶」として伝わった','');
 addQ('アジア','交易都市と交易路','回廊を訪れた著名な学者・詩人を挙げると？','ハディース集を編纂したムハンマド・アル・ブハーリー／ペルシャ文学最初期の詩人ルダーキー／医学者のイブン・シーナー（アヴィケンナ）／ソグディアナ出身で仏教経典を中国語に訳した安世高や康僧会','');
@@ -6755,7 +7382,7 @@ addQ('アフリカ','未来への教訓','「三角貿易」の仕組みと、�
 addQ('アフリカ','未来への教訓','「奴隷の家」の構造と、収容の実態は？','2階には奴隷商人たちが住み、1階には船の出港を待つ奴隷たちが収容されていた／2.6m四方の正方形の部屋に20人が鎖でつながれて詰め込まれていたといわれる','島の東岸にある奴隷貿易のシンボル。島の北端にはフランスによって完成されたエストレ要塞が歴史博物館となっている。');
 addQ('アフリカ','未来への教訓','クンタ・キンテ島の所在地・別名と、その位置づけは？','ガンビア共和国の西部、ガンビア川の河口／ジェームズ島／ゴレ島と並ぶ奴隷貿易の重要拠点','ガンビア川はアフリカ内陸部に向かうルートとして重要な役割を担っていた。15〜20世紀にかけてヨーロッパ各国が築いた要塞や奴隷の詰所などの遺構が残る。');
 addQ('アフリカ','未来への教訓','クンタ・キンテ島にゆかりのある作家と、その作品は？','アレックス・ヘイリー／『ルーツ』／彼の祖先もこの地からアメリカ大陸に連れてこられた','アレックス・ヘイリー＝20世紀のアフリカ系アメリカ人作家。『ルーツ』ではガンビアで生まれ奴隷狩りで捕らえられアメリカに売られた祖先とその子孫たちの人生を描いている。');
-addQ('アフリカ','未来への教訓','ガーナの城塞群が築かれた時期・背景と、その名の由来は？','15〜18世紀にヨーロッパ人によってベナン湾沿いのおよそ500kmにわたって築かれた／ガーナは「黄金海岸（ゴールドコースト）」と呼ばれたほどの金の産地で、15世紀のポルトガル人を皮切りにスペイン、デンマーク、スウェーデン、オランダ、ドイツ、イギリスといった貿易商人が相次いで進出し、覇権争いの中で数多くの要塞が設けられた','');
+addQ('アフリカ','未来への教訓','ガーナの城塞群が築かれた時期・背景と、その名の由来は？','15〜18世紀にヨーロッパ人がベナン湾沿い約500kmにわたって築いた／「黄金海岸（ゴールドコースト）」と呼ばれたほどの金の産地だったため','15世紀のポルトガル人を皮切りに、スペイン・デンマーク・スウェーデン・オランダ・ドイツ・イギリスの貿易商人が相次いで進出し、覇権争いの中で数多くの要塞が設けられた。');
 addQ('アフリカ','未来への教訓','ガーナの城塞群の用途と、現存数は？','象牙や真鍮、香辛料、奴隷などの交易所として使われ、内部には奴隷の収容所や監獄などがある／最盛期に60カ所あったうちの3分の1が現存し、一部は博物館や学校として転用されている','代表例はエルミナ城。');
 
 // --- キリマンジャロ ---
@@ -7585,7 +8212,7 @@ addQ('アメリカ','入植の歴史（南米）','バルパライソの街の�
 addQ('アメリカ','自由と独立','ESMA記憶の場博物館の所在地・建物の由来と、その時代背景は？','アルゼンチンの首都ブエノスアイレス／1928年から2004年まで存在した旧アルゼンチン海軍技術学校（ESMA）の建物／1976年から1983年の軍事独裁政権時代、国家主導でゲリラ組織や左翼への弾圧が行われた','2023年登録。「記憶の場」として登録された遺産の1つ。');
 addQ('アメリカ','自由と独立','「汚い戦争」の犠牲者数と、ESMAでの拘禁人数は？','「汚い戦争」と言われる一連の国家テロによって、反乱分子の疑いをかけられた活動家やジャーナリスト、学生など3万人の市民が秘密裏に誘拐・殺害された／ESMAは囚人収容所の1つであり、アルゼンチン海軍によって5,000人以上が拘禁された','');
 addQ('アメリカ','自由と独立','ESMAの表向きの姿と、そこで行われていた実態は？','ESMAには学校や図書館・食堂などさまざまな施設が存在し、表向きは高級将校の居住施設であった建物で、市民の違法な拘留や拷問・殺害が行われていた／頭にフードを被せて誘拐された市民は高さ1m、幅60〜70cm、奥行2mの狭いスペースに収容され連日拷問や性的暴行を受けた','その多くは暗殺されており、生きたまま飛行機から海や川へと突き落とす「死の飛行」と呼ばれる殺害方法は殊に悪名高い。また妊娠中の女性は出産後に暗殺され、生まれた子どもは軍の関係者や親族の養子に出された。没収された囚人の財産は反体制派への弾圧活動に充てられた。');
-addQ('アメリカ','自由と独立','「コンドル作戦」とは何か、アルゼンチンの役割と機密拠点の数は？','1960〜90年代のラテンアメリカでは各地で親米独裁政権が成立し、特に1975〜77年にはコンドル作戦と呼ばれる反共的な政治的弾圧がアメリカ合衆国やCIAの支援の下で共同展開された／アルゼンチンはこの作戦で主導的な役割を果たし、ESMAのような拘禁や拷問が行われた機密拠点は国内に少なくとも700以上存在したことが判明している','');
+addQ('アメリカ','自由と独立','「コンドル作戦」とは何か、アルゼンチンの役割と機密拠点の数は？','1975〜77年に米国・CIAの支援下で共同展開された反共的な政治弾圧／アルゼンチンは主導的な役割を果たし、ESMAのような拘禁・拷問の機密拠点は国内に少なくとも700以上あったとされる','1960〜90年代のラテンアメリカでは各地で親米独裁政権が成立し、その中で共同展開されたのがコンドル作戦である。');
 addQ('アメリカ','自由と独立','軍事政権崩壊後のアルゼンチンの対応は？','1983年に軍事政権が崩壊し民政へと移管すると、全国失踪者調査委員会（CONADEP）が組織され残虐な被害の実態が次々と明らかになった／1985年からは軍人への裁判が始まり、その数は500件以上に上る','');
 
 // --- グロス・モーン ---
@@ -7749,7 +8376,7 @@ addQ('ヨーロッパ','戦争関連遺産と戦争からの復興','アウシ�
 addQ('ヨーロッパ','戦争関連遺産と戦争からの復興','1942〜1944年のアウシュヴィッツの性格と、犠牲者の内訳は？','ユダヤ人がいわゆる人種を理由に拷問され殺される集団絶滅収容所となった／100万人を優に超えるユダヤ人男性・女性・子供たち、数万人のポーランド人犠牲者に加え、数千人のロマなどの少数民族やヨーロッパのいくつかの国籍の囚人たち／ほかにも政治犯や犯罪者、精神や身体に障害のある人も命を落とした','ロマ＝かつてはジプシーと呼ばれた移動型の民族集団のうち、中東欧に居住する民族。ナチスのユダヤ人蔑視・劣化・絶滅政策は、第三帝国が広めた人種差別的・反ユダヤ主義的イデオロギーに根ざしていた。');
 
 // --- 施設 ---
-addQ('ヨーロッパ','戦争関連遺産と戦争からの復興','アウシュヴィッツ強制収容所の建物の由来と、この場所が選ばれた3つの理由は？','ドイツ軍が接収したポーランド軍兵舎を改築・増築したもの／①鉄道での輸送・運搬が容易に行える ②周囲からの隔離が比較的簡単にできる ③ナチス・ドイツが考える劣等民族をドイツ本国内に入れないようにするため','');
+addQ('ヨーロッパ','戦争関連遺産と戦争からの復興','アウシュヴィッツ強制収容所の建物の由来と、この場所が選ばれた3つの理由は？','ドイツ軍が接収したポーランド軍兵舎を改築・増築したもの／鉄道での輸送・運搬が容易に行える／周囲からの隔離が比較的簡単にできる／ナチス・ドイツが考える劣等民族をドイツ本国内に入れないようにするため','');
 addQ('ヨーロッパ','戦争関連遺産と戦争からの復興','アウシュヴィッツの対外的な喧伝と、実態の違いは？','海外向けには「善意によってユダヤ人を保護収容する場所」や「幸福世界」などと喧伝されていた／実際には収容者に強制的な重労働を課し処刑をする場所であった','');
 addQ('ヨーロッパ','戦争関連遺産と戦争からの復興','アウシュヴィッツ・ビルケナウの建造物の数と、フェンスの規模は？','155のレンガと木造の建造物（アウシュヴィッツに57、ビルケナウに98）と約300の廃墟／コンクリートの支柱に支えられた有刺鉄線のフェンスの全長は13km以上','ナチス・ドイツはすべての強制収容所を外界から隔離し、外界との接触は一切禁止された。');
 addQ('ヨーロッパ','戦争関連遺産と戦争からの復興','ビルケナウ強制収容所の建設年・規模と、その役割は？','収容者の増加を受けて1942年にアウシュヴィッツ近隣に第2収容所として建設／アウシュヴィッツ最大の強制収容所で、ピークの1944年には90,000人以上の囚人を収容／ガス室などの大量絶滅装置の大部分はビルケナウに建設され、犠牲者の大部分はここで殺害された','最も古いのはアウシュヴィッツ第1強制収容所としても知られる本収容所。');
@@ -7936,7 +8563,7 @@ addQ('オセアニア','ポリネシア文化圏','「カタ・ジュタ」の�
 addQ('オセアニア','複合遺産','タスマニア原生地帯の登録基準と、その特徴は？','(iii)(iv)(vi)(vii)(viii)(ix)(x)の7基準／複合遺産／島南西部の5つの国立公園が連なる総面積1万5,842k㎡のエリア','1982年登録、1989・2010・2012・2013年に範囲拡大。太古の姿を保った植物や独自の進化を遂げた動物が見られる。');
 addQ('オセアニア','複合遺産','タスマニアの氷河地形の特徴と、最深の湖は？','氷河期には氷河の流動によって大地が浸食され、平坦な山頂や荒々しい斜面、多数の湖が誕生／クレイドル・マウンテン－セント・クレア・レイク国立公園一帯に多く見られ、セント・クレア・レイクの水深167mはオーストラリア最深の湖','');
 addQ('オセアニア','複合遺産','タスマニア島の成り立ちと、先住民の生活は？','かつてゴンドワナ大陸の一部で、オーストラリアと陸続きだったと考えられている／19世紀まで先住民のタスマニア・アボリジニが暮らし、石器時代と同様の狩猟採集生活を営んでいた','ゴンドワナ大陸＝かつて存在したといわれる巨大大陸。分裂して現在の南アメリカ・アフリカ・オーストラリア・南極・インドなどの大陸が誕生したとされる。');
-addQ('オセアニア','複合遺産','タスマニア・アボリジニが絶滅した経緯と、その最後の日付は？','英国人が入植し始めると追い出しや駆り立てなどによって枯れた土地に移動せざるをえなくなり、島の北側のフリンダーズ島につくられた収容施設に送られる者も多数いたが、劣悪な食糧事情や白人が持ち込んだ伝染病に感染するなどして死者が続出／かつては4,500人ほどもいた純血のタスマニア・アボリジニは激減し、1876年5月8日にトゥルガニニという名の老人が死去したことでついに絶えた','');
+addQ('オセアニア','複合遺産','タスマニア・アボリジニが絶滅した経緯と、その最後の日付は？','追い出しや伝染病で激減し、1876年5月8日にトゥルガニニという名の老人が死去して純血の民族は絶えた','英国人の入植後、追い出しや駆り立てで枯れた土地への移動を強いられ、島北部のフリンダーズ島の収容施設に送られた者も多かった。劣悪な食糧事情や白人が持ち込んだ伝染病で死者が続出。かつて純血のタスマニア・アボリジニは4,500人ほどいた。');
 
 // --- グレート・バリア・リーフ ---
 addQ('オセアニア','自然の景観美','グレート・バリア・リーフの規模と、その形成の歴史は？','オーストラリア北東の海岸に沿うように全長約2,300kmにわたって広がる世界最大のサンゴ礁／サンゴ礁が形成され始めたのは約1,800万年前と推測され、氷河期を経て現在目にできるサンゴ礁が誕生したのは約8,000〜6,000年前','地球の歴史を知る上でも重要なものとされている。');
@@ -8690,7 +9317,7 @@ addQ('オセアニア','地球生成の歴史','テ・ワヒポウナムのフ�
 addQ('オセアニア','自然の景観美','ガリ（フレーザー島）の所在地・規模・登録基準と、その位置づけは？','オーストラリアの東海岸、南北約120kmに広がる／(vii)(viii)(ix)／世界最大の砂の島','1992年登録。');
 addQ('オセアニア','自然の景観美','ガリの成因と、大地が安定した仕組みは？','約80万年前からオーストラリア大陸の東部にあるグレート・ディヴァイディング山脈で風化によって削られた砂が堆積していったことで誕生／砂丘が鳥たちの安息所となると、鳥のふんから種子が芽を出し安定した大地が形成されていった','');
 addQ('オセアニア','自然の景観美','ガリの先住民の定住時期と、ヨーロッパ人が島を知った経緯・年は？','約1万9,000年前にオーストラリアの先住民バジャラが定住／1836年にエリザ・フレーザーという女性がこの島での体験を話したのがきっかけ／エリザの乗る船が暴風の影響でこの島に座礁し、船長であるエリザの夫と船員たちはバジャラに捕まり、ひとり逃れたエリザが人々に救済を求めた','');
-addQ('オセアニア','自然の景観美','ガリで樹木伐採が始まった経緯・年と、環境が守られた経緯は？','1842年に冒険家アンドルー・ピートリが探検し、マングローブやユーカリ、ナンヨウスギなど木材の資源が生い茂る自然豊かな島であることを発表したことで、樹木伐採を目的とする集団が大挙して押しかけた／20世紀に入ると製材所や鉄道などが建設され荒廃していくが、1972年に環境保護団体が島の北部3分の1を保護下に置くと伐採をやめるように企業と交渉し環境が守られた','');
+addQ('オセアニア','自然の景観美','ガリで樹木伐採が始まった経緯・年と、環境が守られた経緯は？','1842年に冒険家アンドルー・ピートリが探検し木材資源が豊かな島だと発表したことで、伐採を目的とする集団が押しかけた／1972年に環境保護団体が島の北部3分の1を保護下に置き、企業と交渉して環境が守られた','発表されたのはマングローブ・ユーカリ・ナンヨウスギなどの豊富な木材資源。20世紀に入ると製材所や鉄道が建設され荒廃が進んでいた。');
 addQ('オセアニア','自然の景観美','ガリの遺産名の変更の経緯は？','2021年に「フレーザー島」から『ガリ（フレーザー島）』に遺産名が変更／さらに2025年には『ガリ』に変更された','遺産名の変更の例。先住民の呼称を尊重する近年の潮流を示す。');
 
 // --- ブルー・マウンテンズ ---
@@ -8884,7 +9511,7 @@ addQ('テーマ別_地域横断','逆転登録','宗像・沖ノ島と関連遺�
 addQ('テーマ別_地域横断','逆転登録','富士山（2013年）で、イコモスが「除外すべき」と勧告したが委員会が逆転させて含めた構成資産は？','三保松原（静岡市）','イコモスは「富士山との視覚的つながりが弱い」として除外を勧告したが、日本側の主張が認められ含めた形で登録された。「一部構成資産の逆転」パターン。');
 addQ('テーマ別_地域横断','逆転登録','ロベン島（南アフリカ・1999年）の逆転登録で、登録提案を行った人物は？','松浦晃一郎（当時のユネスコ事務局長兼世界遺産委員会議長）','ICOMOSが否定的評価を下したが、松浦が「自由を象徴する資産」として提案し逆転登録が実現。松浦は後に「世界遺産条約発足以来最大のミスター世界遺産」と評された人物。');
 addQ('テーマ別_地域横断','逆転登録','2025年にICOMOSが「不記載（不登録）」勧告を出したにもかかわらず、委員会が逆転登録させたアラブ首長国連邦の遺産は？','ファヤの先史景観','ICOMOSは「顕著な普遍的価値の証明が不十分」として不記載勧告。委員会は「アフリカとアラビア半島を結ぶ重要な文化遺産・先住民の文化を表現」として逆転登録を決議した。');
-addQ('テーマ別_地域横断','逆転登録','逆転登録を「種類」で整理すると3パターンある。それぞれ何か？','①完全逆転（「不記載」「延期」→「記載」：石見銀山・百舌鳥古市・ロベン島など）②格上げ逆転（「情報照会」→「記載」：佐渡島の金山）③構成資産逆転（除外・縮小勧告→全部含めて記載：富士山・宗像）','①が最も「厚かましい」と批判されやすいが、①の方向での逆転も近年常態化している。2011年の第35回委員会では22件のイコモス/IUCN勧告を覆し25件を登録という記録がある。');
+addQ('テーマ別_地域横断','逆転登録','逆転登録を「種類」で整理すると3パターンある。それぞれ何か？','完全逆転（「不記載」「延期」→「記載」：石見銀山・百舌鳥古市・ロベン島など）／格上げ逆転（「情報照会」→「記載」：佐渡島の金山）／構成資産逆転（除外・縮小勧告→全部含めて記載：富士山・宗像）','①が最も「厚かましい」と批判されやすいが、①の方向での逆転も近年常態化している。2011年の第35回委員会では22件のイコモス/IUCN勧告を覆し25件を登録という記録がある。');
 addQ('テーマ別_地域横断','負の遺産','最初の世界遺産12件に含まれる負の遺産は？','ゴレ島（セネガル）','奴隷貿易の拠点として人類の悲劇を伝える。「負の遺産」という概念が世界遺産制度の出発点（1978年）から既に存在していたことを示し、「最近の概念」という誤解を正す重要な事例。');
 addQ('テーマ別_地域横断','負の遺産','核兵器の悲惨さそのものでなく平和への誓いを評価軸とする日本の負の遺産は？','原爆ドーム','1996年登録、登録基準(vi)単独。アメリカが反対、中国が棄権という投票を経て登録された経緯も、負の遺産特有の政治的緊張を示している。');
 addQ('テーマ別_地域横断','負の遺産','アパルトヘイトの記憶を伝える南アフリカの負の遺産は？','ロベン島','1999年登録、(iii)(vi)。ネルソン・マンデラが27年のうち18年間収監されていた監獄島で、逆転登録のテーマとも重なる事例。');
@@ -8903,7 +9530,7 @@ addQ('テーマ別_地域横断','宗教施設の転用','ハギア・ソフィ�
 addQ('テーマ別_地域横断','宗教施設の転用','コルドバのメスキータ（スペイン）はモスクをどう扱ったか？','モスクの内部に大聖堂を建設し、共存させた','ハギア・ソフィアのような「完全な転換」ではなく「内部に新設して共存」という第三のパターン。宗教の重層が一つの建物に刻まれた稀有な事例。');
 addQ('テーマ別_地域横断','宗教施設の転用','セビーリャ大聖堂（スペイン）は元のモスクをどう扱ったか？','モスクを解体し、新たに大聖堂を建立した','転用パターンの中で最も「上書き」的な処理。コロンブスの墓があることでも知られる。');
 addQ('テーマ別_地域横断','宗教施設の転用','アルハンブラ宮殿（スペイン）はレコンキスタ後どう扱われたか？','破壊せず、カトリック両王が離宮として保存した','宗教施設ではなく宮殿だが「征服者が被征服文化の建築をどう処理したか」という同じ枠組みで比較される代表例。');
-addQ('テーマ別_地域横断','宗教施設の転用','ハギア・ソフィア・メスキータ・セビーリャ大聖堂・アルハンブラ宮殿、この4つの転用パターンを整理すると？','①完全な用途転換（ハギア・ソフィア）②内部共存（メスキータ）③解体して新築（セビーリャ）④保存して別用途（アルハンブラ）','「征服後の宗教・権力施設の処理」という一つの論点に対し、世界には複数の異なる解決パターンが存在する。出題ではこの4パターンを区別させる問題が作りやすい。');
+addQ('テーマ別_地域横断','宗教施設の転用','ハギア・ソフィア・メスキータ・セビーリャ大聖堂・アルハンブラ宮殿、この4つの転用パターンを整理すると？','完全な用途転換（ハギア・ソフィア）／内部共存（メスキータ）／解体して新築（セビーリャ）／保存して別用途（アルハンブラ）','「征服後の宗教・権力施設の処理」という一つの論点に対し、世界には複数の異なる解決パターンが存在する。出題ではこの4パターンを区別させる問題が作りやすい。');
 addQ('テーマ別_地域横断','巡礼路','スペインの巡礼地で、聖ヤコブの墓所とされる大聖堂がある都市は？','サンティアゴ・デ・コンポステーラ','エルサレム・ローマと並ぶキリスト教三大巡礼地の一つ。巡礼路自体も別途「スペイン北部の巡礼路」として世界遺産に登録されている。');
 addQ('テーマ別_地域横断','巡礼路','日本で参詣道そのものが構成資産になっている世界遺産は？','紀伊山地の霊場と参詣道','日本初の文化的景観登録でもある。「道」という線的な構成要素が世界遺産になるという点で、サンティアゴ巡礼路と並ぶ画期的な事例。');
 addQ('テーマ別_地域横断','巡礼路','サンティアゴ巡礼路と紀伊山地の参詣道に共通する評価上の特徴は？','道そのものが構成資産となり、目的地の建造物だけでなく道中の体験全体が評価されている','通常の世界遺産は「点（建造物）」や「面（地域）」で評価されるが、巡礼路は「線」という第三の評価単位を提供する制度上重要な概念。');
@@ -9003,14 +9630,14 @@ addQ('テーマ別_地域横断','直前集中モード','【時事】2026年第
 addQ('テーマ別_地域横断','直前集中モード','【時事】2026年第48回委員会で日本が受けた「佐渡島の金山」に関する要請は？','採掘の全時期を通じた歴史の説明の強化と緩衝地帯の保護強化／2027年12月1日までに対応状況を報告','2024年の逆転登録で決着した話ではない点が重要。第47回（2025年）で韓国提起の軍艦島議案が否決されたのとは別件で、こちらは決議として採択された。');
 addQ('テーマ別_地域横断','直前集中モード','【時事】2026年第48回委員会で初めて世界遺産を保有した3か国と、保有国の総数は？','南スーダン・コモロ・サントメプリンシペ／173か国','締約国196か国に対し保有国173か国なので、未保有は23か国。3か国ともアフリカ関連という点が問われやすい。');
 addQ('テーマ別_地域横断','直前集中モード','【時事】2025年第47回世界遺産委員会の結果：開催地・新規登録件数・総数・危機遺産数は？','フランス・パリ（ユネスコ本部）／26件登録／総数1,248件（文化972・自然235・複合41）／危機遺産53件','当初開催予定地はブルガリアのソフィアだったが変更。議長国はブルガリアのまま。3件が危機遺産リストから解除されたため53件に減少。');
-addQ('テーマ別_地域横断','直前集中モード','【統計】世界遺産保有数国別ランキング上位5カ国と件数（2025年7月末）は？','①イタリア61件②中国60件③ドイツ55件④フランス54件⑤スペイン50件','日本は2026年の「飛鳥・藤原の宮都」登録で27件となり、10位前後。文化遺産No.1はイタリア、自然遺産No.1は中国。イタリアとドイツが上位なのは中世の都市国家・領邦国家構造が背景。');
+addQ('テーマ別_地域横断','直前集中モード','【統計】世界遺産保有数国別ランキング上位5カ国と件数（2025年7月末）は？','イタリア61件／中国60件／ドイツ55件／フランス54件／スペイン50件','日本は2026年の「飛鳥・藤原の宮都」登録で27件となり、10位前後。文化遺産No.1はイタリア、自然遺産No.1は中国。イタリアとドイツが上位なのは中世の都市国家・領邦国家構造が背景。');
 addQ('テーマ別_地域横断','直前集中モード','【統計】グローバルストラテジー採択から30年後、ヨーロッパの占有率はどう変化したか？','39.0%（1994年末）→40.1%（2025年末）と微増。目的（是正）は達成されていない','増えたのはアジアのみ（23.0%→29.2%）。アフリカ（15.9%→12.3%）・アメリカ（19.1%→15.9%）・オセアニアは相対的に低下した。');
-addQ('テーマ別_地域横断','直前集中モード','【統計】世界遺産リストから抹消された3件を年順に挙げると？','①アラビアオリックスの保護区（オマーン・2007年・史上初）②ドレスデン・エルベ渓谷（ドイツ・2009年・架橋）③海商都市リヴァプール（イギリス・2021年・再開発）','抹消はすべて「開発による価値の毀損」が原因。2025年にはパナマで統合による消滅が1件発生（新規26件の中に含まれたため総数の増加は25件にとどまった）。');
+addQ('テーマ別_地域横断','直前集中モード','【統計】世界遺産リストから抹消された3件を年順に挙げると？','アラビアオリックスの保護区（オマーン・2007年・史上初）／ドレスデン・エルベ渓谷（ドイツ・2009年・架橋）／海商都市リヴァプール（イギリス・2021年・再開発）','抹消はすべて「開発による価値の毀損」が原因。2025年にはパナマで統合による消滅が1件発生（新規26件の中に含まれたため総数の増加は25件にとどまった）。');
 addQ('テーマ別_地域横断','直前集中モード','【統計】「登録と同時に危機遺産リスト入り」した最も新しい事例（2023年・2024年）は？','2023年：オデーサ歴史地区（ウクライナ）／2024年：聖ヒラリオン修道院（パレスチナ）','オデーサは第18回臨時世界遺産委員会（2023年1月）で緊急登録。パレスチナはガザ紛争を受けた緊急措置。パレスチナは「最初の登録から3件連続でこの制度を適用」という特異な記録を持つ。');
 addQ('テーマ別_地域横断','直前集中モード','【概念】奈良文書とベネチア憲章、採択年と内容は？','奈良文書（1994年）＝真正性の再定義、ベネチア憲章（1964年）＝修復の原則','「古い方（1964）が修復のルール、新しい方（1994）が真正性の拡張」。日本の木造建築が石造基準と合わなかったことが奈良文書誕生の背景。');
 addQ('テーマ別_地域横断','直前集中モード','【概念】文化的景観の初登録遺産と、概念が導入された年は？','1993年：トンガリロ国立公園（ニュージーランド）が世界初の文化的景観として認定／概念導入は1992年','マオリ族の聖山を「関連する景観」として認定。1994年時点でわずか2件だった文化的景観は2025年時点で134件に急増。');
-addQ('テーマ別_地域横断','直前集中モード','【概念】「記憶の場」という区分が新設された年と、最初に登録された3件は？','2023年新設／①ルワンダ虐殺の記憶の場所②ESMAの博物館と記憶の場（アルゼンチン）③第一次世界大戦西部戦線の慰霊と記憶の場（ベルギー・フランス）','「負の遺産」は条約上の正式用語ではないが、「記憶の場」は2023年から正式区分。この3件が最初の「記憶の場」登録。');
-addQ('テーマ別_地域横断','直前集中モード','【逆転登録】日本の逆転登録5件を年順に挙げると？','①石見銀山（2007・延期勧告→記載）②富士山・三保松原（2013・除外勧告→含めて記載）③宗像・沖ノ島（2017・沖ノ島のみ勧告→より広い構成で記載）④百舌鳥・古市（2019・情報照会→記載）⑤佐渡島の金山（2024・情報照会→記載）','逆転のパターンは①完全逆転②格上げ逆転③構成資産逆転の3種。日本が世界で最も多く逆転登録を行っている国の一つ。');
+addQ('テーマ別_地域横断','直前集中モード','【概念】「記憶の場」という区分が新設された年と、最初に登録された3件は？','2023年新設／ルワンダ虐殺の記憶の場所／ESMAの博物館と記憶の場（アルゼンチン）／第一次世界大戦西部戦線の慰霊と記憶の場（ベルギー・フランス）','「負の遺産」は条約上の正式用語ではないが、「記憶の場」は2023年から正式区分。この3件が最初の「記憶の場」登録。');
+addQ('テーマ別_地域横断','直前集中モード','【逆転登録】日本の逆転登録5件を年順に挙げると？','石見銀山（2007・延期勧告→記載）／富士山・三保松原（2013・除外勧告→含めて記載）／宗像・沖ノ島（2017・沖ノ島のみ勧告→より広い構成で記載）／百舌鳥・古市（2019・情報照会→記載）／佐渡島の金山（2024・情報照会→記載）','逆転のパターンは①完全逆転②格上げ逆転③構成資産逆転の3種。日本が世界で最も多く逆転登録を行っている国の一つ。');
 addQ('テーマ別_地域横断','直前集中モード','【日本】潜伏キリシタン関連遺産の正式名称と登録基準は？','長崎と天草地方の潜伏キリシタン関連遺産／(iii)のみ','当初「長崎の教会群とキリスト教関連遺産」という名称で推薦したが、建築的価値を評価軸とした推薦をイコモスに否定され、「潜伏という独自の信仰形態」という文明の物証（(iii)）に軸を転換して登録。旧名で覚えると引っかかる。');
 addQ('テーマ別_地域横断','直前集中モード','【日本】潜伏キリシタンと隠れキリシタン、違いはどこか？','潜伏：禁教期（〜1873年）に仏教徒を装いながら信仰を続けた人々／隠れ：1873年の解禁後もカトリックに戻らず独自の信仰形態を守り続けた人々','世界遺産が評価しているのは「潜伏」（禁教期の独自信仰）。「隠れ」は解禁後の言葉で、両者を混同するのが最も多い誤りのパターン。');
 addQ('テーマ別_地域横断','直前集中モード','【日本】平泉の5構成資産と、2008年延期勧告後に絞り込んだ件数の変化は？','中尊寺・毛越寺・観自在王院跡・無量光院跡・金鶏山（頭文字「中毛観無金」）／9件から5件に絞り込んで2011年に逆転登録','毛越寺は「大泉が池と遣水（全長80m）」が見どころ。無量光院跡は宇治平等院鳳凰堂より大きく、金鶏山を背景に夕日で浄土をイメージする設計。');
@@ -9020,8 +9647,8 @@ addQ('テーマ別_地域横断','直前集中モード','【世界】泰山と�
 addQ('テーマ別_地域横断','直前集中モード','【世界】ヴェネツィアとその潟の登録基準と、その意味は？','(i)(ii)(iii)(iv)(v)(vi)——文化遺産で唯一6基準すべてを満たす遺産','「文化遺産でこれだけの基準を持つ遺産は世界に1つしかない」ということを問われやすい。自然基準(vii)〜(x)は含まれない点も引っかけになりうる。');
 addQ('テーマ別_地域横断','直前集中モード','【世界】「登録基準(vi)のみで認められた」有名な遺産はどれか？','ゴレ島（セネガル）・原爆ドーム（日本）など','(vi)は「思想・信仰・芸術との直接的・具体的な関連」。これのみでの登録は委員会が例外的に認めるケースで、作業指針上は他の基準との組み合わせが推奨されている。（訂正メモ：旧版にあった「コソボの中世建造物群」は登録基準(ii)(iii)(iv)であり(vi)を含まないため削除。）');
 addQ('テーマ別_地域横断','直前集中モード','【世界】アラビアオリックスの保護区（オマーン）が史上初の抹消となった年と理由は？','2007年／オマーンが天然ガス・石油開発を優先し保護区域を90%削減したため','IUCN（自然遺産の諮問機関）の強い警告を無視して縮小が実行された。「危機遺産リストを経ずに抹消」された初の事例という点でも特異。');
-addQ('テーマ別_地域横断','直前集中モード','【世界】ウクライナで2023年に一度に3件が危機遺産リストに追加されたのはなぜか、また3件の名称は？','ロシアの軍事侵攻（2022年2月〜）を受けた緊急措置／①キーウの聖ソフィア大聖堂②リヴィウ歴史地区③オデーサ歴史地区','オデーサは「登録と同時に危機遺産リスト入り」という異例の緊急登録。単一国から一度に3件というのも歴史的に稀な事例。');
-addQ('テーマ別_地域横断','直前集中モード','【世界】グローバルストラテジーが特に登録促進を重視した4地域と、近年初登録となった国の例は？','①中央アジア②サハラ以南アフリカ③カリブ海諸国④太平洋島嶼国／ルワンダ（2023年）・シエラレオネ（2025年）・ギニアビサウ（2025年）','ルワンダは2件同時初登録（ニュングウェ国立公園＋ルワンダ虐殺の記憶の場所）。この3か国はすべてサハラ以南アフリカ。');
+addQ('テーマ別_地域横断','直前集中モード','【世界】ウクライナで2023年に一度に3件が危機遺産リストに追加されたのはなぜか、また3件の名称は？','ロシアの軍事侵攻（2022年2月〜）を受けた緊急措置／キーウの聖ソフィア大聖堂／リヴィウ歴史地区／オデーサ歴史地区','オデーサは「登録と同時に危機遺産リスト入り」という異例の緊急登録。単一国から一度に3件というのも歴史的に稀な事例。');
+addQ('テーマ別_地域横断','直前集中モード','【世界】グローバルストラテジーが特に登録促進を重視した4地域と、近年初登録となった国の例は？','中央アジア／サハラ以南アフリカ／カリブ海諸国／太平洋島嶼国／ルワンダ（2023年）・シエラレオネ（2025年）・ギニアビサウ（2025年）','ルワンダは2件同時初登録（ニュングウェ国立公園＋ルワンダ虐殺の記憶の場所）。この3か国はすべてサハラ以南アフリカ。');
 addQ('テーマ別_地域横断','直前集中モード','【制度】世界遺産条約が採択された年と、第1回委員会・最初の12件登録の年は？','条約採択：1972年／第1回委員会：1977年（パリ）／最初の12件登録：1978年（第2回委員会・ワシントンD.C.）','1977年は委員会が発足しただけで登録ゼロ。最初の12件は第2回委員会（1978年）。この「1977年と1978年の違い」は引っかけになりやすい。');
 addQ('テーマ別_地域横断','直前集中モード','【制度】世界遺産委員会の年間審議上限件数・各国推薦枠・委員国数・委員国任期は？','審議上限35件／各国原則1件／委員国21カ国／条約上6年（作業指針での推奨は4年に短縮自主申告）','ビューロー会議は7カ国（議長1・副議長5・書記1）で任期1年。委員国の任期（6年/4年）とビューロー任期（1年）の混同に注意。');
 addQ('テーマ別_地域横断','直前集中モード','【制度】イコモス（ICOMOS）とIUCNの役割の違いは？','イコモス：文化遺産の諮問機関（調査・審査・勧告）／IUCN：自然遺産の諮問機関（同左）','複合遺産には両機関が関与する。どちらも「諮問機関」であり、委員会に対する強制力はない——だからこそ逆転登録が起きる。イコモスが日本の文化遺産を全件担当している点も押さえておく。');
@@ -10999,6 +11626,21 @@ function renderAssetBoard(category, topic) {
     '</div>';
 }
 
+// トピック解説の直後に自作の構造図（DIAGRAMS）を描画する。
+// データが無いトピックでは何も返さない（renderAssetBoard と同じ流儀）。
+function renderDiagram(category, topic) {
+  const list = (typeof DIAGRAMS !== 'undefined') && DIAGRAMS[category + '|' + topic];
+  if (!list || !list.length) return '';
+  return list.map(function (d) {
+    return '<div class="story-card figure-card">' +
+      '<div class="figure-title">' + d.title + '</div>' +
+      (d.sub ? '<div class="figure-sub">' + d.sub + '</div>' : '') +
+      '<div class="figure-svg">' + d.svg + '</div>' +
+      (d.cap ? '<div class="figure-cap">' + d.cap + '</div>' : '') +
+      '</div>';
+  }).join('');
+}
+
 const SITE_CITATIONS = {
   // 公式テキストに載っていない時事の出所（ページではなく情報源を書く）
   '公式テキスト外の時事': 'UNESCO・外務省の公表資料および報道／最終更新 2026年8月',
@@ -12881,6 +13523,7 @@ function renderTopicView() {
         '<div class="btn-row" style="margin-top:6px;"><button class="btn" id="quickMemoSaveBtn" style="font-size:12px; padding:7px 14px;">保存</button></div>' +
       '</div>' +
     '</div>' +
+    renderDiagram(category, topic) +
     renderAssetBoard(category, topic) +
     '</div>';
   } else if (crossTopicMode === 'bookmark') {
