@@ -10962,6 +10962,11 @@ function renderAssetBoard(category, topic) {
   const data = TOPIC_ASSETS[category + '|' + topic];
   if (!data) return '';
   const MARK = { star: '★', out: '✕', flip: '⚡' };
+  // 資産名がそのトピックの解説文で<b>ハイライトされている場合だけ、暗記モードの
+  // 黒塗り対象にする（<b>で囲む）。解説に出てこない・強調されていない資産名まで
+  // 空欄にすると答えようがないので、対象はハイライト済みのものだけに絞る。
+  const highlightTerms = getHighlightTerms(category + '|' + topic);
+  const isHighlighted = name => highlightTerms.some(t => name.indexOf(t) !== -1);
   let used = {};
   let body = '';
   data.groups.forEach(g => {
@@ -10971,8 +10976,9 @@ function renderAssetBoard(category, topic) {
       '<div class="asset-chips">' +
       g.items.map(it => {
         if (it.mark) used[it.mark] = true;
+        const nameHtml = isHighlighted(it.n) ? '<b>' + it.n + '</b>' : it.n;
         return '<span class="asset-chip' + (it.mark ? ' is-' + it.mark : '') + '">' +
-          (it.mark ? MARK[it.mark] : '') + it.n +
+          (it.mark ? MARK[it.mark] : '') + nameHtml +
           (it.sub ? '<span class="asset-sub">' + it.sub + '</span>' : '') +
           '</span>';
       }).join('') +
@@ -12874,8 +12880,9 @@ function renderTopicView() {
         '<textarea class="backup-textarea" id="quickMemoText" placeholder="気づいたこと・疑問点をメモ" style="height:60px;"></textarea>' +
         '<div class="btn-row" style="margin-top:6px;"><button class="btn" id="quickMemoSaveBtn" style="font-size:12px; padding:7px 14px;">保存</button></div>' +
       '</div>' +
-    '</div></div>';
-    html += renderAssetBoard(category, topic);
+    '</div>' +
+    renderAssetBoard(category, topic) +
+    '</div>';
   } else if (crossTopicMode === 'bookmark') {
     const filterLabel = bookmarkFilter
       ? bookmarkFilter.category.replace(/_/g, '・') + (bookmarkFilter.topic ? '｜' + bookmarkFilter.topic.replace(/_/g, '・') : '（カテゴリ全体）')
@@ -13028,19 +13035,28 @@ function expandCompoundTerms(list) {
   return [...out];
 }
 
-function buildBasicSet() {
-  const terms = {};
-  for (const key in STORIES) {
-    const body = STORIES[key].body || '';
-    const base = (body.match(/<b>(.*?)<\/b>/g) || [])
-      .map(t => t.replace(/<[^>]*>/g, '').trim())
-      .filter(t => t.length >= 2 && !BASIC_YEAR_RE.test(t));
-    terms[key] = expandCompoundTerms(base);
+// トピックごとの「解説でハイライトされた語」一覧。基本/応用判定と、構成資産ボードの
+// 暗記モード対象の両方から参照するので、一度作ったら使い回す。
+let highlightTermsCache = null;
+function getHighlightTerms(key) {
+  if (!highlightTermsCache) {
+    highlightTermsCache = {};
+    for (const k in STORIES) {
+      const body = STORIES[k].body || '';
+      const base = (body.match(/<b>(.*?)<\/b>/g) || [])
+        .map(t => t.replace(/<[^>]*>/g, '').trim())
+        .filter(t => t.length >= 2 && !BASIC_YEAR_RE.test(t));
+      highlightTermsCache[k] = expandCompoundTerms(base);
+    }
   }
+  return highlightTermsCache[key] || [];
+}
+
+function buildBasicSet() {
   basicIdSet = {};
   QUESTIONS.forEach(q => {
-    const list = terms[q.category + '|' + q.topic];
-    if (!list || list.length === 0) return;
+    const list = getHighlightTerms(q.category + '|' + q.topic);
+    if (!list.length) return;
     const items = q.answer.split('／').map(s => s.trim()).filter(Boolean);
     if (!items.length) return;
     const allCovered = items.every(item => list.some(t => item.indexOf(t) !== -1));
