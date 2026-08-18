@@ -11834,7 +11834,9 @@ function driveErrorMessage(err) {
 // driveCallTool から見た入出力の形（{files:[{id,title,mimeType}], nextPageToken} など）は
 // 上のMCP版に完全に合わせてあるので、これより上位のコード（getDriveFolderId以降）は無改造で動く。
 const STANDALONE_DRIVE_CLIENT_ID = '350102209171-b3b2gqjuch5doq25d8nddh97e5krer92.apps.googleusercontent.com';
-const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+// drive.fileだと「このアプリ自身が作ったファイルしか見えない」ため、claude.ai側のMCP版Drive連携が
+// 作った既存のバックアップフォルダを読めない。両方から同じ履歴を見せるためフルアクセスにしている。
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive';
 
 function standaloneDriveConfigured() {
   return !!STANDALONE_DRIVE_CLIENT_ID && STANDALONE_DRIVE_CLIENT_ID.indexOf('__') !== 0;
