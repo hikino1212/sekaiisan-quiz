@@ -11783,18 +11783,23 @@ async function saveProgress() {
   }
 }
 
-// --- Google Drive 同期（claude.ai上でArtifactとして開いている場合のみ利用可）---
+// --- Google Drive 同期（claude.ai Artifact版はMCP経由、GitHub Pages版はGIS経由。両対応）---
 const DRIVE_FOLDER_NAME = '世界遺産検定1級_進捗バックアップ';
 let driveServerNameCache = null;
 let driveFolderIdCache = null;
 
-function driveAvailable() {
+function mcpAvailable() {
   return !!(window.claude && window.claude.mcp);
+}
+
+// UI側の表示可否判定はこちら。MCP・スタンドアロンのどちらかが使えれば真。
+function driveAvailable() {
+  return mcpAvailable() || standaloneDriveConfigured();
 }
 
 async function resolveDriveServer() {
   if (driveServerNameCache) return driveServerNameCache;
-  if (!driveAvailable()) throw { code: 'capability_disabled' };
+  if (!mcpAvailable()) throw { code: 'capability_disabled' };
   const res = await window.claude.mcp.listTools();
   const found = (res.servers || []).find(s => /drive/i.test(s.server) && s.tools && s.tools.length);
   if (!found) throw { code: 'server_not_connected' };
@@ -11803,20 +11808,184 @@ async function resolveDriveServer() {
 }
 
 async function driveCallTool(tool, input) {
-  const server = await resolveDriveServer();
-  const result = await window.claude.mcp.callTool(server, tool, input);
-  return result.payload;
+  if (mcpAvailable()) {
+    const server = await resolveDriveServer();
+    const result = await window.claude.mcp.callTool(server, tool, input);
+    return result.payload;
+  }
+  if (standaloneDriveConfigured()) return gisCallTool(tool, input);
+  throw { code: 'capability_disabled' };
 }
 
 function driveErrorMessage(err) {
   const code = err && err.code;
-  if (code === 'needs_reauth') return 'Google Driveの認証が切れています。claude.aiの設定→コネクタで再接続してください。';
+  if (code === 'needs_reauth') return 'Google Driveの認証が切れています。「Driveに今すぐバックアップする」を押して再度ログインしてください。';
   if (code === 'server_not_connected') return 'Google Driveコネクタが接続されていません。claude.aiの設定→コネクタで追加してください。';
   if (code === 'selection_required') return '複数のGoogle Driveアカウントがあります。claude.ai側で選択してください。';
-  if (code === 'capability_disabled' || code === 'capability_removed' || code === 'not_granted') return 'Drive連携はこのページをArtifactとして開いている場合のみ利用できます。';
+  if (code === 'capability_disabled' || code === 'capability_removed' || code === 'not_granted') return 'このページではDrive連携が設定されていません。';
   if (code === 'blocked_by_policy' || code === 'approval_required') return '組織のポリシーによりDrive連携がブロックされています。';
+  if (code === 'popup_blocked' || code === 'popup_closed') return 'ログイン用のポップアップが閉じられました。もう一度お試しください。';
   if (code === 'no_snapshot') return 'Drive上にバックアップがまだありません。先に「Driveに今すぐバックアップする」を実行してください。';
   return 'Driveとの通信に失敗しました。時間をおいて再度お試しください。';
+}
+
+// --- Google Drive 同期（スタンドアロン版：claude.ai Artifact以外＝GitHub Pages等で動かす場合）---
+// window.claude.mcp が無い環境向けに、Google Identity Services + Drive API v3 を直接叩く。
+// driveCallTool から見た入出力の形（{files:[{id,title,mimeType}], nextPageToken} など）は
+// 上のMCP版に完全に合わせてあるので、これより上位のコード（getDriveFolderId以降）は無改造で動く。
+const STANDALONE_DRIVE_CLIENT_ID = '350102209171-b3b2gqjuch5doq25d8nddh97e5krer92.apps.googleusercontent.com';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+
+function standaloneDriveConfigured() {
+  return !!STANDALONE_DRIVE_CLIENT_ID && STANDALONE_DRIVE_CLIENT_ID.indexOf('__') !== 0;
+}
+
+let gisScriptPromise = null;
+function loadGisScript() {
+  if (gisScriptPromise) return gisScriptPromise;
+  gisScriptPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.async = true;
+    s.onload = resolve;
+    s.onerror = () => reject({ code: 'gis_load_failed' });
+    document.head.appendChild(s);
+  });
+  return gisScriptPromise;
+}
+
+let gisTokenClient = null;
+let gisAccessToken = null;
+let gisTokenExpiresAt = 0;
+
+// interactive=false はサイレント更新（ポップアップ無し）を試み、失敗したら呼び出し側で
+// interactive=true にして呼び直す。初回は必ずポップアップでの同意が要る。
+async function gisEnsureToken(interactive) {
+  await loadGisScript();
+  if (gisAccessToken && Date.now() < gisTokenExpiresAt - 30000) return gisAccessToken;
+  if (!gisTokenClient) {
+    gisTokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: STANDALONE_DRIVE_CLIENT_ID,
+      scope: DRIVE_SCOPE,
+      callback: () => {},
+    });
+  }
+  return new Promise((resolve, reject) => {
+    gisTokenClient.callback = (resp) => {
+      if (resp && resp.error) {
+        reject({ code: resp.error === 'access_denied' ? 'needs_reauth' : 'popup_closed', raw: resp });
+        return;
+      }
+      gisAccessToken = resp.access_token;
+      gisTokenExpiresAt = Date.now() + (resp.expires_in || 3600) * 1000;
+      resolve(gisAccessToken);
+    };
+    gisTokenClient.error_callback = () => reject({ code: 'popup_blocked' });
+    gisTokenClient.requestAccessToken({ prompt: interactive ? 'consent' : '' });
+  });
+}
+
+async function gisAuthedFetch(url, options) {
+  let token;
+  try { token = await gisEnsureToken(false); }
+  catch (e) { token = await gisEnsureToken(true); }
+  const doFetch = t => fetch(url, Object.assign({}, options, {
+    headers: Object.assign({ Authorization: 'Bearer ' + t }, (options && options.headers) || {}),
+  }));
+  let res = await doFetch(token);
+  if (res.status === 401) {
+    gisAccessToken = null;
+    token = await gisEnsureToken(true);
+    res = await doFetch(token);
+  }
+  return res;
+}
+
+async function gisErrorFromResponse(res) {
+  let body = null;
+  try { body = await res.json(); } catch (e) {}
+  if (res.status === 401) return { code: 'needs_reauth', raw: body };
+  if (res.status === 403) return { code: 'blocked_by_policy', raw: body };
+  return { code: 'drive_http_' + res.status, raw: body };
+}
+
+function utf8ToB64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  bytes.forEach(b => { bin += String.fromCharCode(b); });
+  return btoa(bin);
+}
+
+// 呼び出し元（MCP版）のクエリ方言（title=/parentId=）をDrive v3の方言（name=/'X' in parents）に変換する。
+// このアプリ内で使われるクエリは2種類だけなので、汎用パーサではなく置換で足りる。
+function translateDriveQuery(q) {
+  let out = (q || '').replace(/\btitle\b/g, 'name');
+  out = out.replace(/parentId\s*=\s*'([^']*)'/, "'$1' in parents");
+  return out + " and trashed = false";
+}
+
+async function gisCallTool(tool, input) {
+  if (tool === 'search_files') {
+    const params = new URLSearchParams({
+      q: translateDriveQuery(input.query),
+      pageSize: String(input.pageSize || 100),
+      fields: 'nextPageToken, files(id, name, mimeType)',
+      spaces: 'drive',
+    });
+    if (input.pageToken) params.set('pageToken', input.pageToken);
+    const res = await gisAuthedFetch('https://www.googleapis.com/drive/v3/files?' + params.toString());
+    if (!res.ok) throw await gisErrorFromResponse(res);
+    const json = await res.json();
+    return {
+      files: (json.files || []).map(f => ({ id: f.id, title: f.name, mimeType: f.mimeType })),
+      nextPageToken: json.nextPageToken,
+    };
+  }
+  if (tool === 'create_file') {
+    if (input.mimeType === 'application/vnd.google-apps.folder') {
+      const res = await gisAuthedFetch('https://www.googleapis.com/drive/v3/files', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: input.title,
+          mimeType: 'application/vnd.google-apps.folder',
+          parents: (input.parentId && input.parentId !== 'root') ? [input.parentId] : undefined,
+        }),
+      });
+      if (!res.ok) throw await gisErrorFromResponse(res);
+      const json = await res.json();
+      return { id: json.id, title: json.name };
+    }
+    const boundary = 'drivefile' + Date.now();
+    const metadata = {
+      name: input.title,
+      parents: input.parentId ? [input.parentId] : undefined,
+    };
+    const mime = input.contentMimeType || 'application/json';
+    const body =
+      '--' + boundary + '\r\n' +
+      'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+      JSON.stringify(metadata) + '\r\n' +
+      '--' + boundary + '\r\n' +
+      'Content-Type: ' + mime + '\r\n\r\n' +
+      (input.textContent || '') + '\r\n' +
+      '--' + boundary + '--';
+    const res = await gisAuthedFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      method: 'POST',
+      headers: { 'Content-Type': 'multipart/related; boundary=' + boundary },
+      body: body,
+    });
+    if (!res.ok) throw await gisErrorFromResponse(res);
+    const json = await res.json();
+    return { id: json.id, title: json.name };
+  }
+  if (tool === 'download_file_content') {
+    const res = await gisAuthedFetch('https://www.googleapis.com/drive/v3/files/' + input.fileId + '?alt=media');
+    if (!res.ok) throw await gisErrorFromResponse(res);
+    const text = await res.text();
+    return { content: utf8ToB64(text) };
+  }
+  throw { code: 'unsupported_tool' };
 }
 
 async function getDriveFolderId() {
@@ -13194,7 +13363,7 @@ async function refreshDriveStatusLine() {
   const driveStatusLine = document.getElementById('driveStatusLine');
   if (!driveStatusLine) return;
   if (!driveAvailable()) {
-    driveStatusLine.textContent = 'Drive連携はこのページをArtifactとして開いている場合のみ利用できます。';
+    driveStatusLine.textContent = 'このページではDrive連携が利用できません。';
     return;
   }
   driveStatusLine.textContent = 'Drive上の最終更新を確認中…';
