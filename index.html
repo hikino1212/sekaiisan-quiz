@@ -5188,6 +5188,113 @@ const DIAGRAMS = {
     },
   ],
 
+  // ===== F1 エジプトのピラミッド形式の変遷（アフリカ初の図解）=====
+  'アフリカ|古代文明と考古遺跡': [
+    {
+      id: 'pyramid-evolution',
+      title: 'ピラミッドはこうして生まれた',
+      sub: 'マスタバを積み重ねる発想から、なめらかな四角錐へ',
+      svg: `<svg viewBox="0 0 560 200" role="img" aria-label="マスタバから階段ピラミッド、屈折ピラミッドへの形式の変遷図">
+        <g text-anchor="middle">
+          <rect x="10" y="130" width="150" height="24" fill="#DCC186" stroke="#B79B5E"/>
+          <text x="85" y="20" font-size="12" font-weight="700" fill="#1F2A3D">マスタバ</text>
+          <text x="85" y="176" font-size="9.5" fill="#8A8270">王侯貴族の角形の墳墓</text>
+          <text x="85" y="190" font-size="9" fill="#8A8270">（ピラミッド以前）</text>
+        </g>
+        <text x="185" y="140" font-size="16" fill="#A8823C">→</text>
+        <g text-anchor="middle">
+          <g fill="#DCC186" stroke="#B79B5E">
+            <rect x="205" y="130" width="130" height="24"/>
+            <rect x="219" y="106" width="102" height="24"/>
+            <rect x="233" y="82" width="74" height="24"/>
+            <rect x="247" y="58" width="46" height="24"/>
+          </g>
+          <text x="270" y="20" font-size="12" font-weight="700" fill="#9B3B2E">階段ピラミッド</text>
+          <text x="270" y="176" font-size="9.5" fill="#8A8270">ジェセル王・宰相イムホテプ</text>
+          <text x="270" y="190" font-size="9" fill="#8A8270">現存最古のピラミッド</text>
+        </g>
+        <text x="365" y="140" font-size="16" fill="#A8823C">→</text>
+        <g text-anchor="middle">
+          <path d="M395 154 L430 100 L465 130 L500 154 Z" fill="#E4CE9F" stroke="#B79B5E"/>
+          <line x1="430" y1="100" x2="430" y2="154" stroke="#B79B5E" stroke-dasharray="3 2"/>
+          <text x="447" y="20" font-size="12" font-weight="700" fill="#A8823C">屈折ピラミッド</text>
+          <text x="447" y="176" font-size="9.5" fill="#8A8270">第4王朝スネフェル王</text>
+          <text x="447" y="190" font-size="9" fill="#8A8270">傾斜の角度が途中で変わる</text>
+        </g>
+      </svg>`,
+      cap: '<b>マスタバ→階段ピラミッド（ジェセル王）→屈折ピラミッド（スネフェル王）</b>と、真正ピラミッドへ向けて試行錯誤が続いた。',
+    },
+  ],
+
+  // ===== F2 アンコール・ワットの須弥山構造（アジア2件目・ボロブドゥールと対になる図解）=====
+  'アジア|都市遺跡': [
+    {
+      id: 'angkor-meru',
+      title: 'アンコール・ワットの宇宙観',
+      sub: '中央塔と同心円状の堀で、ヒンドゥー教の世界を再現する',
+      svg: `<svg viewBox="0 0 560 220" role="img" aria-label="アンコール・ワットが須弥山を中心に同心円状の大地と海を表す平面図">
+        <g transform="translate(150,110)">
+          <circle r="95" fill="#EBD9B4" stroke="#C9B77F"/>
+          <circle r="66" fill="#DCE6EC" stroke="#A9C0CC"/>
+          <circle r="50" fill="#E4CE9F" stroke="#B79B5E"/>
+          <circle r="16" cy="-2" fill="#9B3B2E"/>
+          <circle r="7" cx="-24" cy="14" fill="#A8823C"/>
+          <circle r="7" cx="24" cy="14" fill="#A8823C"/>
+          <circle r="7" cx="-24" cy="-20" fill="#A8823C"/>
+          <circle r="7" cx="24" cy="-20" fill="#A8823C"/>
+          <text x="0" y="46" text-anchor="middle" font-size="9" fill="#5B5346">中央塔＋四方の塔＝5峰</text>
+        </g>
+        <g font-size="11.5">
+          <text x="290" y="34" fill="#1F2A3D" font-weight="700">中央塔（高さ約65m）</text>
+          <text x="290" y="50" font-size="10" fill="#8A8270">須弥山（メール山）の頂＝神々の住処</text>
+          <text x="290" y="88" fill="#1F2A3D" font-weight="700">堀（同心円状）</text>
+          <text x="290" y="104" font-size="10" fill="#8A8270">須弥山を囲む7つの海を表す</text>
+          <text x="290" y="142" fill="#1F2A3D" font-weight="700">外周</text>
+          <text x="290" y="158" font-size="10" fill="#8A8270">全体を囲むヒマラヤ山脈を表す</text>
+        </g>
+        <line x1="150" y1="20" x2="280" y2="30" stroke="#D8C89E" stroke-dasharray="3 2"/>
+        <line x1="150" y1="60" x2="280" y2="82" stroke="#D8C89E" stroke-dasharray="3 2"/>
+        <line x1="150" y1="20" x2="280" y2="136" stroke="#D8C89E" stroke-dasharray="3 2"/>
+      </svg>`,
+      cap: '5基の塔＝<b>須弥山</b>、同心円の堀＝<b>7つの海</b>、外周＝<b>ヒマラヤ山脈</b>。ヒンドゥー教の宇宙観を平面に写した設計。',
+    },
+  ],
+
+  // ===== D2b ロマネスク→ゴシックの構造対比（既存D2「建築様式（ロマネスク）」と対になる図解）=====
+  'ヨーロッパ|建築様式（ゴシック）': [
+    {
+      id: 'romanesque-to-gothic',
+      title: 'ロマネスクからゴシックへ',
+      sub: '重厚な壁が、光を取り込む壁へ変わった構造の転換',
+      svg: `<svg viewBox="0 0 560 220" role="img" aria-label="ロマネスク様式の分厚い壁とゴシック様式の飛梁・ステンドグラスの構造対比図">
+        <g text-anchor="middle">
+          <rect x="10" y="20" width="240" height="150" rx="6" fill="#F3EAD3" stroke="#D8C89E"/>
+          <text x="130" y="14" font-size="13" font-weight="700" fill="#1F2A3D">ロマネスク</text>
+          <rect x="40" y="50" width="40" height="100" fill="#C9B77F"/>
+          <rect x="180" y="50" width="40" height="100" fill="#C9B77F"/>
+          <path d="M80 90 Q130 60 180 90" fill="none" stroke="#8A6E3A" stroke-width="4"/>
+          <text x="130" y="184" font-size="9.5" fill="#8A8270">分厚い石壁・半円アーチ・窓が小さい</text>
+          <text x="130" y="198" font-size="9" fill="#8A8270">例：シャルトルの旧塔（106m）</text>
+        </g>
+        <text x="270" y="100" font-size="16" fill="#A8823C" text-anchor="middle">→</text>
+        <g text-anchor="middle">
+          <rect x="290" y="20" width="260" height="150" rx="6" fill="#F3EAD3" stroke="#D8C89E"/>
+          <text x="420" y="14" font-size="13" font-weight="700" fill="#9B3B2E">ゴシック</text>
+          <rect x="322" y="50" width="16" height="100" fill="#C9B77F"/>
+          <rect x="502" y="50" width="16" height="100" fill="#C9B77F"/>
+          <path d="M338 66 L420 40 L502 66" fill="none" stroke="#8A6E3A" stroke-width="3"/>
+          <rect x="356" y="66" width="128" height="80" fill="#DCE6EC" stroke="#A9C0CC" stroke-width="1.5"/>
+          <path d="M420 66 L420 146 M370 66 L370 146 M470 66 L470 146" stroke="#A9C0CC" stroke-width="1"/>
+          <path d="M322 150 L300 168 M338 150 L316 168" stroke="#B79B5E" stroke-width="2.5"/>
+          <path d="M518 150 L540 168 M502 150 L524 168" stroke="#B79B5E" stroke-width="2.5"/>
+          <text x="420" y="184" font-size="9.5" fill="#8A8270">尖頭アーチ・飛梁（外側の斜材）・大きなステンドグラス</text>
+          <text x="420" y="198" font-size="9" fill="#8A8270">例：シャルトルの新塔（115m）</text>
+        </g>
+      </svg>`,
+      cap: '飛梁（フライング・バットレス）が壁の代わりに屋根を支え、壁を<b>大きなステンドグラス</b>に置き換えられるようになった。',
+    },
+  ],
+
 };
 
 
