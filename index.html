@@ -993,6 +993,8 @@ body.mode-basic .figure-cap { border-top-color: #D6D6D2; }
     <div id="saveStatus" style="font-size:11px; margin-top:6px; color:#8A8270;"></div>
   </div>
 
+  <div class="level-row" id="levelRow"></div>
+
   <div class="passport-stats" id="statsBox"></div>
 
   <div class="top-nav-row">
@@ -13161,9 +13163,13 @@ function levelText(s) {
 
 function renderStats() {
   const box = document.getElementById('statsBox');
-  const total = QUESTIONS.length;
-  const answeredCount = progress.answeredIds.length;
-  const correctCount = progress.correctIds.length;
+  // 全問題数・解答済み・正答率は出題レベルに連動させる（「基本のみ」表示中は基本問題が母数）。
+  // 苦手問題だけは「苦手な問題」ボタンと同じくレベル非依存のまま（意図的な役割分担）。
+  const levelQs = questionLevel === 'basic' ? getLevelAdjustedQuestions(categories) : QUESTIONS;
+  const levelIds = new Set(levelQs.map(q => q.id));
+  const total = levelQs.length;
+  const answeredCount = progress.answeredIds.filter(id => levelIds.has(id)).length;
+  const correctCount = progress.correctIds.filter(id => levelIds.has(id)).length;
   const rate = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
   box.innerHTML =
     '<div class="stat-box"><div class="stat-num">' + total + '</div><div class="stat-label">全問題数</div></div>' +
@@ -13391,6 +13397,33 @@ function renderRoundRow() {
     '<div class="round-row" id="roundRow">' + btn(1) + btn(2) + btn(3) + '</div>';
 }
 
+// 出題レベル（基本のみ／すべて）の切り替え。マストヘッド直下の固定枠に描画するため、
+// ホーム画面（renderList）だけでなく問題画面など全ビューで常に見える・切り替えられる。
+function renderLevelRow() {
+  const box = document.getElementById('levelRow');
+  if (!box) return;
+  const levelNote = questionLevel === 'basic'
+    ? '解説で強調されている重要語を扱う問題だけ'
+    : 'すべての問題を出題します';
+  box.innerHTML = '<div class="level-seg" role="group" aria-label="出題範囲">' +
+      ['basic', 'all'].map(lv => {
+        const label = lv === 'basic' ? '基本のみ' : 'すべて';
+        return '<button class="level-btn' + (questionLevel === lv ? ' on' : '') + '" data-level="' + lv + '"' +
+          ' aria-pressed="' + (questionLevel === lv ? 'true' : 'false') + '">' + label + '</button>';
+      }).join('') +
+    '</div>' +
+    '<span class="level-note">' + levelNote + '</span>';
+  box.querySelectorAll('.level-btn').forEach(btn => {
+    btn.onclick = () => {
+      questionLevel = btn.getAttribute('data-level');
+      saveQuestionLevel();
+      renderStats();
+      renderLevelRow();
+      if (view === 'list') renderList();
+    };
+  });
+}
+
 function renderList() {
   window.scrollTo(0, 0);
   const area = document.getElementById('mainArea');
@@ -13411,20 +13444,6 @@ function renderList() {
   '</div>';
 
   html += renderRoundRow();
-
-  const levelNote = questionLevel === 'basic'
-    ? '解説で強調されている重要語を扱う問題だけ'
-    : 'すべての問題を出題します';
-  html += '<div class="level-row">' +
-    '<div class="level-seg" role="group" aria-label="出題範囲">' +
-      ['basic', 'all'].map(lv => {
-        const label = lv === 'basic' ? '基本のみ' : 'すべて';
-        return '<button class="level-btn' + (questionLevel === lv ? ' on' : '') + '" data-level="' + lv + '"' +
-          ' aria-pressed="' + (questionLevel === lv ? 'true' : 'false') + '">' + label + '</button>';
-      }).join('') +
-    '</div>' +
-    '<span class="level-note">' + levelNote + '</span>' +
-  '</div>';
 
   html += '<div class="cat-tabs" id="catTabs">';
   getDisplayCategories().forEach(cat => {
@@ -13535,13 +13554,6 @@ function renderList() {
   [1, 2, 3].forEach(n => {
     const btn = document.getElementById('round' + n + 'Btn');
     if (btn) btn.onclick = () => openRoundReview(n);
-  });
-  document.querySelectorAll('.level-btn').forEach(btn => {
-    btn.onclick = () => {
-      questionLevel = btn.getAttribute('data-level');
-      saveQuestionLevel();
-      renderList();
-    };
   });
   document.querySelectorAll('#catTabs .cat-tab').forEach(btn => {
     btn.onclick = () => {
@@ -15106,6 +15118,7 @@ async function init() {
   setupAutoSyncHooks();
   // 他の端末で進んだ記録があれば取り込む（自分の記録の方が新しい場合は何もしない）
   const restoreMsgShown = await autoRestoreIfNewer(bootLocalChangedAt);
+  renderLevelRow();
   renderStats();
   // 自動復元の結果を表示した時は、Drive状況の表示で上書きしない
   if (!restoreMsgShown) refreshDriveStatusLine();
