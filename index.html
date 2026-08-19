@@ -455,6 +455,70 @@ body.mode-basic .priority-advice b { color: #5A5A55; }
 body.mode-basic .priority-row.is-top .priority-bar { border-color: #A8A8A2; }
 body.mode-basic .priority-row.is-top .priority-bar-fill { background: #5A5A55; }
 
+/* 合格ロードマップ + 弱点ヒートマップ（第66回・目標160点） */
+.roadmap-board { padding-top: 18px; }
+.roadmap-head {
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", YuMincho, serif;
+  font-size: 14px; color: #4A4537; margin-bottom: 10px;
+}
+.roadmap-head b { font-size: 20px; color: #9B3B2E; font-variant-numeric: tabular-nums; }
+.roadmap-phase {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 10px;
+  padding: 10px 12px; background: #F3EAD3; border: 1px solid #D8CBA8;
+  border-radius: 8px; margin-bottom: 12px;
+}
+.roadmap-phase-tag {
+  font-size: 12px; font-weight: 700; color: #fff; background: #9B3B2E;
+  padding: 3px 10px; border-radius: 100px; white-space: nowrap;
+}
+.roadmap-phase-focus { font-size: 12.5px; line-height: 1.7; color: #4A4537; flex: 1; min-width: 180px; }
+.roadmap-phase-focus b { color: #9B3B2E; }
+.roadmap-score { font-size: 13px; color: #4A4537; margin-bottom: 6px; }
+.roadmap-score b { font-size: 17px; color: #9B3B2E; font-variant-numeric: tabular-nums; }
+.roadmap-score-bar {
+  position: relative; height: 10px; background: #EDE4CB; border: 1px solid #D8CBA8;
+  border-radius: 5px; overflow: hidden; margin-bottom: 16px;
+}
+.roadmap-score-fill { height: 100%; background: #B0955A; border-radius: 5px 0 0 5px; transition: width 0.3s ease; }
+/* 目標160点＝満点の80%位置に目印 */
+.roadmap-score-goal { position: absolute; top: -2px; bottom: -2px; left: 80%; width: 2px; background: #9B3B2E; }
+.roadmap-heat-label { font-size: 11px; color: #8A8270; line-height: 1.6; margin-bottom: 8px; }
+.weak-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.weak-cell {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 8px 4px; border-radius: 8px; border: 1px solid #D8CBA8;
+  font-family: inherit; cursor: pointer; transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.weak-cell:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
+.weak-cell:focus-visible { outline: 2px solid #A8823C; outline-offset: 2px; }
+.weak-cell-name { font-size: 11.5px; font-weight: 700; }
+.weak-cell-val { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.weak-cell-sub { font-size: 9.5px; opacity: 0.75; font-variant-numeric: tabular-nums; }
+/* 4段階の色分け（未着手→要強化→あと一歩→仕上がり） */
+.weak-none   { background: #EFE9DA; color: #9A917B; border-color: #DED3B4; }
+.weak-low    { background: #F6DCD3; color: #9B3B2E; border-color: #E3B7A9; }
+.weak-mid    { background: #F5E9CC; color: #9A7526; border-color: #E0CB93; }
+.weak-strong { background: #DCE8D2; color: #4C7038; border-color: #B9CFA6; }
+.roadmap-legend {
+  display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 10px 0 4px;
+  font-size: 10.5px; color: #8A8270;
+}
+.roadmap-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.roadmap-legend .lg { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+.lg-none { background: #EFE9DA; border: 1px solid #DED3B4; }
+.lg-low { background: #F6DCD3; border: 1px solid #E3B7A9; }
+.lg-mid { background: #F5E9CC; border: 1px solid #E0CB93; }
+.lg-strong { background: #DCE8D2; border: 1px solid #B9CFA6; }
+@media (max-width: 480px) { .weak-grid { grid-template-columns: repeat(3, 1fr); } }
+/* 「基本のみ」モードではアクセント色をグレーに寄せる（文字色も明示的に上書き） */
+body.mode-basic .roadmap-head b,
+body.mode-basic .roadmap-phase-focus b,
+body.mode-basic .roadmap-score b { color: #5A5A55; }
+body.mode-basic .roadmap-phase-tag { background: #6E6E68; }
+body.mode-basic .roadmap-score-fill { background: #8F8F89; }
+body.mode-basic .roadmap-score-goal { background: #5A5A55; }
+body.mode-basic .weak-low { color: #5A5A55; }
+
 /* 周回モード：1〜3周目のボタン行 */
 .round-eyebrow {
   font-size: 11px; letter-spacing: 0.05em; color: #8A8270; font-weight: 700;
@@ -13108,6 +13172,130 @@ function renderPriorityBoard() {
   '</div>';
 }
 
+// ===== 合格ロードマップ + 弱点ヒートマップ（第66回・目標160点） =====
+// docs/STUDY_PLAN_66.md の設計をアプリ側に可視化したもの。
+//  ・今日の日付から現在のPhaseを自動判定して「今やること」を出す
+//  ・配点換算の推定到達度（priority board と同じ totalMastery）を 200点満点に換算し、
+//    目標160点まで「あと何点」を示す。あくまでアプリ内の解答実測ベースの目安
+//  ・分野／地域別の弱点をヒートマップで色分けし、セルを押すとその範囲の
+//    「未解答＋苦手」だけを出題する弱点ドリルに入る（＝Option1の弱点可視化）
+const EXAM_66 = { exam: new Date(2026, 11, 13), cbt: new Date(2026, 10, 29), target: 160, fullMark: 200 };
+const ROADMAP_PHASES = [
+  { end: new Date(2026, 8, 15), no: 1, label: 'Phase 1・土台の固め',
+    focus: '配点の重い<b>基礎知識＋日本</b>を先に90%へ。まず足場を固める。' },
+  { end: new Date(2026, 10, 3), no: 2, label: 'Phase 2・世界の遺産',
+    focus: '<b>世界の遺産</b>を地域ごとに広く。160点への+23点はここで取る。' },
+  { end: new Date(2026, 10, 29), no: 3, label: 'Phase 3・弱点の刈り取り',
+    focus: '<b>2周目→3周目</b>と時事の総ざらい。落としている所を潰す。' },
+  { end: new Date(2027, 0, 1), no: 4, label: 'Phase 4・CBT本番ウィンドウ',
+    focus: '<b>11/29からCBT受験可</b>。模擬計測で安定して150点超なら受験。' },
+];
+function getRoadmapPhase(today) {
+  for (const p of ROADMAP_PHASES) { if (today < p.end) return p; }
+  return ROADMAP_PHASES[ROADMAP_PHASES.length - 1];
+}
+
+const WEAK_SEGMENTS = [
+  { key: '基礎', label: '基礎知識', cats: ['基礎知識'] },
+  { key: '日本', label: '日本', cats: ['日本_文化遺産', '日本_自然遺産'] },
+  { key: 'アジア', label: 'アジア', cats: ['アジア'] },
+  { key: 'ヨーロッパ', label: 'ヨーロッパ', cats: ['ヨーロッパ'] },
+  { key: 'アメリカ', label: 'アメリカ', cats: ['アメリカ'] },
+  { key: 'アフリカ', label: 'アフリカ', cats: ['アフリカ'] },
+  { key: 'オセアニア', label: 'オセアニア', cats: ['オセアニア'] },
+];
+function computeWeaknessBoard() {
+  const answeredSet = new Set(progress.answeredIds);
+  const correctSet = new Set(progress.correctIds);
+  return WEAK_SEGMENTS.map(s => {
+    const qs = getLevelAdjustedQuestions(s.cats);
+    const n = qs.length;
+    const answered = qs.filter(q => answeredSet.has(q.id)).length;
+    const correct = qs.filter(q => correctSet.has(q.id)).length;
+    const coverage = n ? answered / n : 0;
+    const accuracy = answered ? correct / answered : 0;
+    return { key: s.key, label: s.label, n, answered, correct, coverage, accuracy, mastery: accuracy * coverage };
+  });
+}
+function weakCellClass(r) {
+  if (r.answered === 0) return 'weak-none';
+  if (r.mastery >= 0.7) return 'weak-strong';
+  if (r.mastery >= 0.45) return 'weak-mid';
+  return 'weak-low';
+}
+// セグメントの「未解答＋苦手」問題だけを出題（レベル連動）
+function openWeaknessDrill(segKey) {
+  const seg = WEAK_SEGMENTS.find(s => s.key === segKey);
+  if (!seg) return;
+  const pool = getLevelAdjustedQuestions(seg.cats);
+  const ids = pool.filter(q =>
+    !progress.answeredIds.includes(q.id) || progress.wrongIds.includes(q.id)
+  ).map(q => q.id);
+  if (ids.length === 0) { alert(seg.label + 'は未解答・苦手の問題がありません。よく仕上がっています。'); return; }
+  openCustomReview(ids, seg.label + 'の弱点ドリル');
+}
+
+function renderRoadmapBoard() {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const day = 1000 * 60 * 60 * 24;
+  const daysToExam = Math.round((EXAM_66.exam - today) / day);
+  const daysToCbt = Math.round((EXAM_66.cbt - today) / day);
+  const phase = getRoadmapPhase(today);
+
+  const { totalMastery } = computePriorityBoard();
+  const estScore = Math.round((totalMastery / 100) * EXAM_66.fullMark); // 200点換算
+  const gap = EXAM_66.target - estScore;
+  const scorePct = Math.min(100, Math.round((estScore / EXAM_66.target) * 100));
+
+  // ヘッダー（試験までの残り日数と現在のPhase）
+  let head;
+  if (daysToExam > 0) {
+    head = '第66回まで残り <b>' + daysToExam + '</b> 日' +
+      (daysToCbt > 0 ? '（CBT開始まで ' + daysToCbt + ' 日）' : '（CBT受験期間中）');
+  } else if (daysToExam === 0) {
+    head = '今日が試験日。ここまでの積み重ねを信じて。';
+  } else {
+    head = '第66回は終了しました。';
+  }
+
+  const cells = computeWeaknessBoard().map(r => {
+    const cls = weakCellClass(r);
+    const mv = r.answered ? Math.round(r.mastery * 100) + '%' : '—';
+    return '<button class="weak-cell ' + cls + '" data-seg="' + r.key + '" ' +
+      'title="' + r.label + '：解答' + r.answered + '/' + r.n + '・正答率' + (r.answered ? Math.round(r.accuracy * 100) + '%' : '－') + '">' +
+      '<span class="weak-cell-name">' + r.label + '</span>' +
+      '<span class="weak-cell-val">' + mv + '</span>' +
+      '<span class="weak-cell-sub">' + r.answered + '/' + r.n + '</span>' +
+    '</button>';
+  }).join('');
+
+  const scoreLine = daysToExam >= 0
+    ? (gap > 0
+        ? '目標160点まで <b>あと ' + gap + ' 点</b>（推定 ' + estScore + '／200点）'
+        : '推定 <b>' + estScore + '／200点</b>。目標160点を射程に捉えています。')
+    : '推定 <b>' + estScore + '／200点</b>';
+
+  return '<div class="story-card roadmap-board">' +
+    '<div class="story-eyebrow">🗺 合格ロードマップ（第66回・目標160点）</div>' +
+    '<div class="roadmap-head">' + head + '</div>' +
+    '<div class="roadmap-phase"><span class="roadmap-phase-tag">' + phase.label + '</span>' +
+      '<span class="roadmap-phase-focus">' + phase.focus + '</span></div>' +
+    '<div class="roadmap-score">' + scoreLine + '</div>' +
+    '<div class="roadmap-score-bar"><div class="roadmap-score-fill" style="width:' + scorePct + '%;"></div>' +
+      '<div class="roadmap-score-goal" title="目標160点＝200点満点の80%"></div></div>' +
+    '<div class="roadmap-heat-label">分野・地域別の弱点（解答率×正答率）／セルを押すとその範囲の弱点ドリルに入る</div>' +
+    '<div class="weak-grid">' + cells + '</div>' +
+    '<div class="roadmap-legend">' +
+      '<span><i class="lg lg-none"></i>未着手</span>' +
+      '<span><i class="lg lg-low"></i>要強化</span>' +
+      '<span><i class="lg lg-mid"></i>あと一歩</span>' +
+      '<span><i class="lg lg-strong"></i>仕上がり</span>' +
+    '</div>' +
+    '<div class="priority-board-note">推定得点はアプリ内の解答実測ベースの目安（解いた分だけ反映）。実力の全ては映しません。合格ラインは200点満点中140点。</div>' +
+  '</div>';
+}
+
 function renderRoundRow() {
   const counts = { 1: getRoundIds(1).length, 2: getRoundIds(2).length, 3: getRoundIds(3).length };
   const desc = { 1: 'まだ解いていない問題', 2: '間違えたままの問題', 3: '2回以上間違えている問題' };
@@ -13130,6 +13318,7 @@ function renderList() {
   const area = document.getElementById('mainArea');
   let html = '';
 
+  html += renderRoadmapBoard();
   html += renderPriorityBoard();
 
   html += '<div class="review-buttons-row" id="reviewButtonsRow">' +
@@ -13250,6 +13439,9 @@ function renderList() {
 
   area.innerHTML = html;
 
+  document.querySelectorAll('.weak-grid .weak-cell').forEach(cell => {
+    cell.onclick = () => openWeaknessDrill(cell.getAttribute('data-seg'));
+  });
   document.getElementById('weakReviewBtn').onclick = () => {
     if (progress.wrongIds.length === 0) { alert('苦手な問題はまだありません。'); return; }
     openWeakReview();
