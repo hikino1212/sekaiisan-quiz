@@ -418,42 +418,8 @@ body.mode-basic .masthead-line { background: linear-gradient(to right, transpare
 .answer-text { font-family: "Hiragino Mincho ProN", "Yu Mincho", YuMincho, serif; font-size: 19px; font-weight: 700; color: #1F2A3D; margin-bottom: 10px; }
 .explanation-text { font-size: 13px; line-height: 1.8; color: #4A4537; }
 
-/* 配点優先度ダッシュボード */
-.priority-board { padding-top: 18px; }
-.priority-total {
-  font-family: "Hiragino Mincho ProN", "Yu Mincho", YuMincho, serif;
-  font-size: 15px; color: #4A4537; margin-bottom: 2px;
-}
-.priority-total b { font-size: 28px; color: #9B3B2E; font-variant-numeric: tabular-nums; }
-.priority-total-note { font-size: 11px; color: #8A8270; line-height: 1.7; margin-bottom: 16px; }
-.priority-row { margin-bottom: 14px; }
-.priority-row:last-of-type { margin-bottom: 0; }
-.priority-row-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
-.priority-row-label { font-size: 13.5px; font-weight: 700; color: #232017; }
-.priority-row.is-top .priority-row-label { color: #9B3B2E; }
-.priority-row-weight { font-size: 11px; color: #A8823C; font-weight: 700; }
-.priority-bar {
-  height: 8px; background: #EDE4CB; border-radius: 4px; overflow: hidden;
-  border: 1px solid #D8CBA8;
-}
-.priority-bar-fill { height: 100%; background: #B0955A; border-radius: 4px 0 0 4px; transition: width 0.3s ease; }
-.priority-row.is-top .priority-bar { border-color: #C99186; }
-.priority-row.is-top .priority-bar-fill { background: #9B3B2E; }
-.priority-row-nums { font-size: 11.5px; color: #8A8270; margin-top: 4px; }
-.priority-row-nums b { color: #4A4537; font-variant-numeric: tabular-nums; }
-.priority-advice {
-  margin-top: 14px; padding-top: 12px; border-top: 1px dashed #D8CBA8;
-  font-size: 12.5px; line-height: 1.7; color: #4A4537;
-}
-.priority-advice b { color: #9B3B2E; }
+/* 合格ロードマップ内の配点注記（roadmap-board側の定義と共用） */
 .priority-board-note { margin-top: 8px; font-size: 10.5px; color: #B0A684; }
-body.mode-basic .priority-bar { background: #DCDCD9; border-color: #C9C9C5; }
-body.mode-basic .priority-bar-fill { background: #8F8F89; }
-body.mode-basic .priority-row.is-top .priority-row-label,
-body.mode-basic .priority-total b,
-body.mode-basic .priority-advice b { color: #5A5A55; }
-body.mode-basic .priority-row.is-top .priority-bar { border-color: #A8A8A2; }
-body.mode-basic .priority-row.is-top .priority-bar-fill { background: #5A5A55; }
 
 /* 合格ロードマップ + 弱点ヒートマップ（第66回・目標160点） */
 .roadmap-board { padding-top: 18px; }
@@ -482,6 +448,11 @@ body.mode-basic .priority-row.is-top .priority-bar-fill { background: #5A5A55; }
 .roadmap-score-fill { height: 100%; background: #B0955A; border-radius: 5px 0 0 5px; transition: width 0.3s ease; }
 /* 目標160点＝満点の80%位置に目印 */
 .roadmap-score-goal { position: absolute; top: -2px; bottom: -2px; left: 80%; width: 2px; background: #9B3B2E; }
+.roadmap-advice {
+  margin-bottom: 14px; padding: 10px 12px; background: #FBF7EC; border: 1px solid #E6DBBF;
+  border-radius: 8px; font-size: 12.5px; line-height: 1.7; color: #4A4537;
+}
+.roadmap-advice b { color: #9B3B2E; }
 .roadmap-heat-label { font-size: 11px; color: #8A8270; line-height: 1.6; margin-bottom: 8px; }
 .weak-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .weak-cell {
@@ -513,7 +484,8 @@ body.mode-basic .priority-row.is-top .priority-bar-fill { background: #5A5A55; }
 /* 「基本のみ」モードではアクセント色をグレーに寄せる（文字色も明示的に上書き） */
 body.mode-basic .roadmap-head b,
 body.mode-basic .roadmap-phase-focus b,
-body.mode-basic .roadmap-score b { color: #5A5A55; }
+body.mode-basic .roadmap-score b,
+body.mode-basic .roadmap-advice b { color: #5A5A55; }
 body.mode-basic .roadmap-phase-tag { background: #6E6E68; }
 body.mode-basic .roadmap-score-fill { background: #8F8F89; }
 body.mode-basic .roadmap-score-goal { background: #5A5A55; }
@@ -13269,40 +13241,6 @@ function computePriorityBoard() {
   return { rows, totalMastery };
 }
 
-function renderPriorityBoard() {
-  const { rows, totalMastery } = computePriorityBoard();
-  const pct = n => Math.round(n * 100);
-  const top = rows[0];
-
-  const rowsHtml = rows.map((r, i) => {
-    const isTop = i === 0 && r.answered < r.n; // 手つかず分が残っている中で最優先の1件だけ強調
-    return '<div class="priority-row' + (isTop ? ' is-top' : '') + '">' +
-      '<div class="priority-row-head">' +
-        '<span class="priority-row-label">' + (isTop ? '◀ 最優先　' : '') + r.label + '</span>' +
-        '<span class="priority-row-weight">配点目安 ' + r.weight + '%</span>' +
-      '</div>' +
-      '<div class="priority-bar"><div class="priority-bar-fill" style="width:' + pct(r.mastery) + '%;"></div></div>' +
-      '<div class="priority-row-nums">' +
-        '解答 <b>' + r.answered + '</b>/' + r.n + '問（' + pct(r.coverage) + '%）　' +
-        '正答率 <b>' + (r.answered ? pct(r.accuracy) + '%' : '－') + '</b>' +
-      '</div>' +
-    '</div>';
-  }).join('');
-
-  return '<div class="story-card priority-board">' +
-    '<div class="story-eyebrow">🎯 配点優先度ダッシュボード</div>' +
-    '<div class="priority-total">配点換算 推定到達度　<b>' + pct(totalMastery / 100) + '%</b></div>' +
-    '<div class="priority-total-note">基礎知識25%・日本20%・世界55%という配点比率と、あなたの解答率×正答率から算出した目安。合格ラインは概ね70%前後とされる。' +
-      (questionLevel === 'basic' ? '　※「基本のみ」表示中のため、分母は基本問題数（100%＝基本を解き切った状態）。' : '') +
-    '</div>' +
-    rowsHtml +
-    (top.answered < top.n
-      ? '<div class="priority-advice">まずは<b>' + top.label + '</b>を優先。配点が重いわりに伸びしろが大きい分野。</div>'
-      : '<div class="priority-advice">3分野とも一通り解答済み。正答率が低い分野を「苦手な問題」から復習するのが効率的。</div>') +
-    '<div class="priority-board-note">※横断ドリル（テーマ別_地域横断）は配点区分外のため、この集計には含めていません。</div>' +
-  '</div>';
-}
-
 // ===== 合格ロードマップ + 弱点ヒートマップ（第66回・目標160点） =====
 // docs/STUDY_PLAN_66.md の設計をアプリ側に可視化したもの。
 //  ・今日の日付から現在のPhaseを自動判定して「今やること」を出す
@@ -13374,10 +13312,11 @@ function renderRoadmapBoard() {
   const daysToCbt = Math.round((EXAM_66.cbt - today) / day);
   const phase = getRoadmapPhase(today);
 
-  const { totalMastery } = computePriorityBoard();
+  const { rows: priRows, totalMastery } = computePriorityBoard();
   const estScore = Math.round((totalMastery / 100) * EXAM_66.fullMark); // 200点換算
   const gap = EXAM_66.target - estScore;
   const scorePct = Math.min(100, Math.round((estScore / EXAM_66.target) * 100));
+  const topPri = priRows[0]; // 配点(基礎25%/日本20%/世界55%)×伸びしろで最優先の1分野
 
   // ヘッダー（試験までの残り日数と現在のPhase）
   let head;
@@ -13393,11 +13332,12 @@ function renderRoadmapBoard() {
   const cells = computeWeaknessBoard().map(r => {
     const cls = weakCellClass(r);
     const mv = r.answered ? Math.round(r.mastery * 100) + '%' : '—';
+    const accText = r.answered ? '・正答' + Math.round(r.accuracy * 100) + '%' : '';
     return '<button class="weak-cell ' + cls + '" data-seg="' + r.key + '" ' +
-      'title="' + r.label + '：解答' + r.answered + '/' + r.n + '・正答率' + (r.answered ? Math.round(r.accuracy * 100) + '%' : '－') + '">' +
+      'title="' + r.label + '：解答' + r.answered + '/' + r.n + accText + '">' +
       '<span class="weak-cell-name">' + r.label + '</span>' +
       '<span class="weak-cell-val">' + mv + '</span>' +
-      '<span class="weak-cell-sub">' + r.answered + '/' + r.n + '</span>' +
+      '<span class="weak-cell-sub">' + r.answered + '/' + r.n + accText + '</span>' +
     '</button>';
   }).join('');
 
@@ -13407,6 +13347,10 @@ function renderRoadmapBoard() {
         : '推定 <b>' + estScore + '／200点</b>。目標160点を射程に捉えています。')
     : '推定 <b>' + estScore + '／200点</b>';
 
+  const adviceLine = topPri.answered < topPri.n
+    ? 'まずは<b>' + topPri.label + '</b>（配点目安' + topPri.weight + '%）を優先。配点が重いわりに伸びしろが大きい分野。'
+    : '基礎・日本・世界の3分野とも一通り解答済み。正答率が低い地域を下のマスから優先的に復習。';
+
   return '<div class="story-card roadmap-board">' +
     '<div class="story-eyebrow">🗺 合格ロードマップ（第66回・目標160点）</div>' +
     '<div class="roadmap-head">' + head + '</div>' +
@@ -13415,6 +13359,7 @@ function renderRoadmapBoard() {
     '<div class="roadmap-score">' + scoreLine + '</div>' +
     '<div class="roadmap-score-bar"><div class="roadmap-score-fill" style="width:' + scorePct + '%;"></div>' +
       '<div class="roadmap-score-goal" title="目標160点＝200点満点の80%"></div></div>' +
+    '<div class="roadmap-advice">' + adviceLine + '</div>' +
     '<div class="roadmap-heat-label">分野・地域別の弱点（解答率×正答率）／セルを押すとその範囲の弱点ドリルに入る</div>' +
     '<div class="weak-grid">' + cells + '</div>' +
     '<div class="roadmap-legend">' +
@@ -13423,7 +13368,9 @@ function renderRoadmapBoard() {
       '<span><i class="lg lg-mid"></i>あと一歩</span>' +
       '<span><i class="lg lg-strong"></i>仕上がり</span>' +
     '</div>' +
-    '<div class="priority-board-note">推定得点はアプリ内の解答実測ベースの目安（解いた分だけ反映）。実力の全ては映しません。合格ラインは200点満点中140点。</div>' +
+    '<div class="priority-board-note">基礎知識25%・日本20%・世界55%という配点比率と、あなたの解答率×正答率から算出した目安（合格ラインは200点満点中140点）。解いた分だけ反映されるため、実力の全てを映すわけではありません。横断ドリル（テーマ別_地域横断）は配点区分外のため含めていません。' +
+      (questionLevel === 'basic' ? '　※「基本のみ」表示中のため、分母は基本問題数です。' : '') +
+    '</div>' +
   '</div>';
 }
 
@@ -13450,7 +13397,6 @@ function renderList() {
   let html = '';
 
   html += renderRoadmapBoard();
-  html += renderPriorityBoard();
 
   html += '<div class="review-buttons-row" id="reviewButtonsRow">' +
     '<button class="review-btn ' + (progress.wrongIds.length > 0 ? 'has-items' : 'empty') + '" id="weakReviewBtn">' +
