@@ -13226,11 +13226,20 @@ function getLevelAdjustedQuestions(cats) {
   return result;
 }
 
+// 合格ロードマップの得点推定・弱点ヒートマップ専用。出題レベル（基本のみ／すべて）の
+// 表示切り替えとは無関係に、常に全問（応用込み）を母数にする。
+// 理由：本番の試験は応用問題も出るため、「基本のみ」を選んでいる間だけ分母が縮んで
+// 推定点が200点に張り付く（＝基本を完答しただけで満点と表示される）のは実態と乖離する。
+// 「基本のみ」表示は出題側の絞り込みであって、実力の推定はどちらの表示中でも変わらないほうが正しい。
+function getExamQuestions(cats) {
+  return QUESTIONS.filter(q => cats.includes(q.category));
+}
+
 function computePriorityBoard() {
   const answeredSet = new Set(progress.answeredIds);
   const correctSet = new Set(progress.correctIds);
   const rows = SCORE_WEIGHTS.map(w => {
-    const qs = getLevelAdjustedQuestions(w.cats);
+    const qs = getExamQuestions(w.cats);
     const n = qs.length;
     const answered = qs.filter(q => answeredSet.has(q.id)).length;
     const correct = qs.filter(q => correctSet.has(q.id)).length;
@@ -13250,10 +13259,16 @@ function computePriorityBoard() {
 // ===== 合格ロードマップ + 弱点ヒートマップ（第66回・目標160点） =====
 // docs/STUDY_PLAN_66.md の設計をアプリ側に可視化したもの。
 //  ・今日の日付から現在のPhaseを自動判定して「今やること」を出す
-//  ・配点換算の推定到達度（priority board と同じ totalMastery）を 200点満点に換算し、
+//  ・配点換算の推定到達度（totalMastery）を 200点満点に換算し、
 //    目標160点まで「あと何点」を示す。あくまでアプリ内の解答実測ベースの目安
 //  ・分野／地域別の弱点をヒートマップで色分けし、セルを押すとその範囲の
 //    「未解答＋苦手」だけを出題する弱点ドリルに入る（＝Option1の弱点可視化）
+//
+// 得点推定とヒートマップの母数は getExamQuestions() で常に全問（応用込み）に固定し、
+// 出題レベル（基本のみ／すべて）の表示切り替えとは連動させない。連動させると
+// 「基本のみ」選択中に基本問題を完答しただけで推定点が200点に張り付いてしまい、
+// 本番は応用問題も出るという実態と食い違うため（基本のみを完答しても実際は160点に届かない）。
+// 出題レベルが実際に効くのは、クリック後のドリル（openWeaknessDrill）が出す問題の範囲だけ。
 const EXAM_66 = { exam: new Date(2026, 11, 13), cbt: new Date(2026, 10, 29), target: 160, fullMark: 200 };
 const ROADMAP_PHASES = [
   { end: new Date(2026, 8, 15), no: 1, label: 'Phase 1・土台の固め',
@@ -13283,7 +13298,7 @@ function computeWeaknessBoard() {
   const answeredSet = new Set(progress.answeredIds);
   const correctSet = new Set(progress.correctIds);
   return WEAK_SEGMENTS.map(s => {
-    const qs = getLevelAdjustedQuestions(s.cats);
+    const qs = getExamQuestions(s.cats);
     const n = qs.length;
     const answered = qs.filter(q => answeredSet.has(q.id)).length;
     const correct = qs.filter(q => correctSet.has(q.id)).length;
@@ -13374,9 +13389,7 @@ function renderRoadmapBoard() {
       '<span><i class="lg lg-mid"></i>あと一歩</span>' +
       '<span><i class="lg lg-strong"></i>仕上がり</span>' +
     '</div>' +
-    '<div class="priority-board-note">基礎知識25%・日本20%・世界55%という配点比率と、あなたの解答率×正答率から算出した目安（合格ラインは200点満点中140点）。解いた分だけ反映されるため、実力の全てを映すわけではありません。横断ドリル（テーマ別_地域横断）は配点区分外のため含めていません。' +
-      (questionLevel === 'basic' ? '　※「基本のみ」表示中のため、分母は基本問題数です。' : '') +
-    '</div>' +
+    '<div class="priority-board-note">基礎知識25%・日本20%・世界55%という配点比率と、あなたの解答率×正答率から算出した目安（合格ラインは200点満点中140点）。解いた分だけ反映されるため、実力の全てを映すわけではありません。横断ドリル（テーマ別_地域横断）は配点区分外のため含めていません。本番は応用問題も出るため、<b>この推定点・下のマスは「基本のみ」表示中でも常に応用込みの全問を母数にしています</b>（基本を解き切っただけでは満点になりません）。</div>' +
   '</div>';
 }
 
