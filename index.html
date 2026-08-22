@@ -418,9 +418,6 @@ body.mode-basic .masthead-line { background: linear-gradient(to right, transpare
 .answer-text { font-family: "Hiragino Mincho ProN", "Yu Mincho", YuMincho, serif; font-size: 19px; font-weight: 700; color: #1F2A3D; margin-bottom: 10px; }
 .explanation-text { font-size: 13px; line-height: 1.8; color: #4A4537; }
 
-/* 合格ロードマップ内の配点注記（roadmap-board側の定義と共用） */
-.priority-board-note { margin-top: 8px; font-size: 10.5px; color: #B0A684; }
-
 /* 合格ロードマップ + 弱点ヒートマップ（第66回・目標160点） */
 /* ホーム画面の他のカード（.story-card共通のクリーム地＋薄ボーダー）と見分けがつくよう、
    このカードだけ上端にアクセントの帯とやや強めの影を付けて「一番大事な場所」を目立たせる。
@@ -13415,7 +13412,6 @@ function renderRoadmapBoard() {
       '<span><i class="lg lg-mid"></i>あと一歩</span>' +
       '<span><i class="lg lg-strong"></i>仕上がり</span>' +
     '</div>' +
-    '<div class="priority-board-note">基礎知識25%・日本20%・世界55%という配点比率と、あなたの解答率×正答率から算出した目安（合格ラインは200点満点中140点）。解いた分だけ反映されるため、実力の全てを映すわけではありません。横断ドリル（テーマ別_地域横断）は配点区分外のため含めていません。本番は応用問題も出るため、<b>この推定点・下のマスは「基本のみ」表示中でも常に応用込みの全問を母数にしています</b>（基本を解き切っただけでは満点になりません）。</div>' +
   '</div>';
 }
 
