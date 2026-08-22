@@ -442,6 +442,10 @@ body.mode-basic .masthead-line { background: linear-gradient(to right, transpare
   font-size: 14px; color: #4A4537; margin-bottom: 10px;
 }
 .roadmap-head b { font-size: 20px; color: #9B3B2E; font-variant-numeric: tabular-nums; }
+/* 学習ストリーク。連続日数がある時だけレンガ色で強調し、途切れた時はニュートラルな促し文言にする */
+.roadmap-streak { font-size: 12.5px; color: #8A8270; margin: -4px 0 10px; }
+.roadmap-streak.has-streak { color: #9B3B2E; font-weight: 700; }
+.roadmap-streak.has-streak b { font-size: 15px; font-variant-numeric: tabular-nums; }
 .roadmap-phase {
   display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 10px;
   padding: 10px 12px; background: #F3EAD3; border: 1px solid #D8CBA8;
@@ -467,6 +471,18 @@ body.mode-basic .masthead-line { background: linear-gradient(to right, transpare
   border-radius: 8px; font-size: 12.5px; line-height: 1.7; color: #4A4537;
 }
 .roadmap-advice b { color: #9B3B2E; }
+/* 直近7日の学習量。バーの高さ=解答数、色=正答率（データの意味を持つ色分けなので、
+   ヒートマップのweak-*クラスと同じくmode-basicでも色は変えない） */
+.roadmap-trend-label { font-size: 11px; color: #8A8270; margin: 2px 0 6px; }
+.roadmap-trend { display: flex; align-items: flex-end; gap: 6px; height: 52px; margin-bottom: 16px; }
+.trend-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; }
+.trend-bar-track { flex: 1; width: 100%; max-width: 22px; display: flex; align-items: flex-end; }
+.trend-bar { width: 100%; border-radius: 3px 3px 0 0; transition: height 0.2s ease; }
+.trend-bar-empty { background: #E5DEC9; }
+.trend-bar-low { background: #C97B5E; }
+.trend-bar-mid { background: #D9A94C; }
+.trend-bar-good { background: #4F6B42; }
+.trend-day { font-size: 10px; color: #B0A684; }
 .roadmap-heat-label { font-size: 11px; color: #8A8270; line-height: 1.6; margin-bottom: 8px; }
 .weak-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .weak-cell {
@@ -12490,7 +12506,7 @@ const SECTION_GROUPS = {
 };
 const SESSION_KEY = 'last_session';
 function defaultProgress() {
-  return { wrongIds: [], answeredIds: [], correctIds: [], wrongCounts: {}, bookmarkedIds: [], answerCounts: {}, correctCounts: {} };
+  return { wrongIds: [], answeredIds: [], correctIds: [], wrongCounts: {}, bookmarkedIds: [], answerCounts: {}, correctCounts: {}, dailyStats: {} };
 }
 let progress = defaultProgress();
 let view = 'list';
@@ -13348,6 +13364,59 @@ function openWeaknessDrill(segKey) {
   openCustomReview(ids, seg.label + 'の弱点ドリル');
 }
 
+// 学習ストリーク・日別統計。progress.dailyStatsに「YYYY-MM-DD」→{answered, correct}で記録する。
+// 4ヶ月の長丁場を戦う設計なのに「今日も続けている」を可視化する仕組みが無かったための追加。
+function todayKey(d) {
+  d = d || new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function shiftDateKey(key, delta) {
+  const [y, m, d] = key.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + delta);
+  return todayKey(dt);
+}
+// 正誤判定のたびに呼ぶ。isCorrectionは同一問題の自己採点を訂正したときの差分反映で、
+// 訂正は採点直後・同日内にしか起きない操作なので、その日の集計だけを増減すればよい。
+function recordDailyStat(isCorrect, isCorrection) {
+  const key = todayKey();
+  if (!progress.dailyStats[key]) progress.dailyStats[key] = { answered: 0, correct: 0 };
+  const day = progress.dailyStats[key];
+  if (!isCorrection) {
+    day.answered++;
+    if (isCorrect) day.correct++;
+  } else {
+    day.correct = Math.max(0, day.correct + (isCorrect ? 1 : -1));
+  }
+}
+// 連続学習日数。今日・昨日のどちらかに解答記録があれば連続中とみなす
+// （今日まだアプリを開いていなくても、昨日までの連続を「継続中」として見せ、今日やる気を保つ）
+function computeStudyStreak() {
+  const activeDays = new Set(Object.keys(progress.dailyStats).filter(k => progress.dailyStats[k].answered > 0));
+  if (activeDays.size === 0) return 0;
+  let cursor = todayKey();
+  if (!activeDays.has(cursor)) {
+    cursor = shiftDateKey(cursor, -1);
+    if (!activeDays.has(cursor)) return 0;
+  }
+  let streak = 0;
+  while (activeDays.has(cursor)) {
+    streak++;
+    cursor = shiftDateKey(cursor, -1);
+  }
+  return streak;
+}
+// 直近N日（今日含む）の解答数・正答率。ロードマップの推移表示に使う
+function getRecentDailyStats(days) {
+  const out = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const key = shiftDateKey(todayKey(), -i);
+    const day = progress.dailyStats[key] || { answered: 0, correct: 0 };
+    out.push({ key, answered: day.answered, correct: day.correct, accuracy: day.answered ? day.correct / day.answered : 0 });
+  }
+  return out;
+}
+
 function renderRoadmapBoard() {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -13395,15 +13464,46 @@ function renderRoadmapBoard() {
     ? 'まずは<b>' + topPri.label + '</b>（配点目安' + topPri.weight + '%）を優先。配点が重いわりに伸びしろが大きい分野。'
     : '基礎・日本・世界の3分野とも一通り解答済み。正答率が低い地域を下のマスから優先的に復習。';
 
+  // 学習ストリーク（継続日数）と直近7日の学習量。「今日も続けている」実感を可視化する。
+  const hasHistory = Object.keys(progress.dailyStats).length > 0;
+  const streak = computeStudyStreak();
+  let streakLine = '';
+  if (streak > 0) {
+    streakLine = '<div class="roadmap-streak has-streak">🔥 <b>' + streak + '</b>日連続で学習中</div>';
+  } else if (hasHistory) {
+    streakLine = '<div class="roadmap-streak">前回の学習から間が空いています。今日からまた始めましょう</div>';
+  }
+
+  let trendHtml = '';
+  if (hasHistory) {
+    const WEEKDAY_JA = ['日', '月', '火', '水', '木', '金', '土'];
+    const recent = getRecentDailyStats(7);
+    const maxAnswered = Math.max(1, ...recent.map(r => r.answered));
+    const bars = recent.map(r => {
+      const wd = WEEKDAY_JA[new Date(r.key + 'T00:00:00').getDay()];
+      const h = r.answered > 0 ? Math.max(10, Math.round((r.answered / maxAnswered) * 100)) : 6;
+      const cls = r.answered === 0 ? 'trend-bar-empty' : (r.accuracy >= 0.7 ? 'trend-bar-good' : r.accuracy >= 0.4 ? 'trend-bar-mid' : 'trend-bar-low');
+      const title = r.key + '：' + r.answered + '問' + (r.answered > 0 ? '・正答' + Math.round(r.accuracy * 100) + '%' : '');
+      return '<div class="trend-col" title="' + title + '">' +
+        '<div class="trend-bar-track"><div class="trend-bar ' + cls + '" style="height:' + h + '%;"></div></div>' +
+        '<div class="trend-day">' + wd + '</div>' +
+      '</div>';
+    }).join('');
+    trendHtml = '<div class="roadmap-trend-label">直近7日の学習量（バーの色は正答率）</div>' +
+      '<div class="roadmap-trend">' + bars + '</div>';
+  }
+
   return '<div class="story-card roadmap-board">' +
     '<div class="story-eyebrow">🗺 合格ロードマップ（第66回・目標160点）</div>' +
     '<div class="roadmap-head">' + head + '</div>' +
+    streakLine +
     '<div class="roadmap-phase"><span class="roadmap-phase-tag">' + phase.label + '</span>' +
       '<span class="roadmap-phase-focus">' + phase.focus + '</span></div>' +
     '<div class="roadmap-score">' + scoreLine + '</div>' +
     '<div class="roadmap-score-bar"><div class="roadmap-score-fill" style="width:' + scorePct + '%;"></div>' +
       '<div class="roadmap-score-goal" title="目標160点＝200点満点の80%"></div></div>' +
     '<div class="roadmap-advice">' + adviceLine + '</div>' +
+    trendHtml +
     '<div class="roadmap-heat-label">分野・地域別の弱点（解答率×正答率）／セルを押すとその範囲の弱点ドリルに入る</div>' +
     '<div class="weak-grid">' + cells + '</div>' +
     '<div class="roadmap-legend">' +
@@ -14303,6 +14403,7 @@ async function gradeAnswer(isCorrect, isCorrection) {
     if (!progress.answeredIds.includes(currentQ.id)) progress.answeredIds.push(currentQ.id);
     progress.answerCounts[currentQ.id] = (progress.answerCounts[currentQ.id] || 0) + 1;
   }
+  recordDailyStat(isCorrect, isCorrection);
   lastGradedCorrect = isCorrect;
 
   if (isCorrect) {
