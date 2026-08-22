@@ -174,6 +174,48 @@ body.mode-basic .masthead-line { background: linear-gradient(to right, transpare
   border-color: #1F2A3D;
 }
 
+/* トピック一覧の絞り込みチップ（未着手／苦手あり／仕上がり済）。level-segと同じ見た目を踏襲 */
+.topic-filter-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px 8px;
+  margin: 10px 0 12px;
+}
+.topic-filter-seg {
+  display: inline-flex;
+  background: #F3EAD3;
+  border: 1px solid #D8CBA8;
+  border-radius: 100px;
+  padding: 3px;
+  gap: 2px;
+}
+.topic-filter-btn {
+  font-family: inherit;
+  font-size: 12px;
+  color: #8A8270;
+  background: transparent;
+  border: none;
+  border-radius: 100px;
+  padding: 5px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.topic-filter-btn:hover { color: #5B5346; }
+.topic-filter-btn:focus-visible { outline: 2px solid #A8823C; outline-offset: 2px; }
+.topic-filter-btn.on {
+  background: #FBF7EC;
+  color: #9B3B2E;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(35,32,23,0.08);
+}
+@media (prefers-reduced-motion: reduce) {
+  .topic-filter-btn { transition: none; }
+}
+body.mode-basic .topic-filter-seg { background: #DCDCD9; border-color: #C9C9C5; }
+body.mode-basic .topic-filter-btn.on { background: #F7F7F6; }
+
 .topic-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -12511,6 +12553,7 @@ function defaultProgress() {
 let progress = defaultProgress();
 let view = 'list';
 let currentCategory = '世界遺産の基礎知識';
+let topicFilter = 'all'; // 'all' | 'none'（未着手） | 'progress'（苦手あり） | 'mastered'（仕上がり済）
 let currentTopicKey = null;
 let crossTopicMode = null;
 let bookmarkFilter = null;
@@ -13559,6 +13602,23 @@ function renderLevelRow() {
   });
 }
 
+// トピック一覧の絞り込みチップ用。バッジ判定（未着手／苦手あり／仕上がり済）は
+// トピックカードの表示バッジと同じ基準を使い回す（getTopicStatsを1回だけ呼んで結果を共有する）。
+function computeTopicBadge(item) {
+  const s = getTopicStats(item.category, item.topic);
+  let badgeClass = 'badge-none', badgeContent = '';
+  if (s.answeredN === 0) { badgeClass = 'badge-none'; badgeContent = ''; }
+  else if (s.wrongN === 0 && s.answeredN === s.total) { badgeClass = 'badge-mastered'; badgeContent = '済'; }
+  else { badgeClass = 'badge-progress'; badgeContent = s.wrongN; }
+  return { s, badgeClass, badgeContent };
+}
+function topicMatchesFilter(badge) {
+  if (topicFilter === 'none') return badge.badgeClass === 'badge-none';
+  if (topicFilter === 'progress') return badge.badgeClass === 'badge-progress';
+  if (topicFilter === 'mastered') return badge.badgeClass === 'badge-mastered';
+  return true; // 'all'
+}
+
 function renderList() {
   window.scrollTo(0, 0);
   const area = document.getElementById('mainArea');
@@ -13589,7 +13649,6 @@ function renderList() {
   });
   html += '</div>';
 
-  html += '<div class="topic-grid" id="topicGrid">';
   const virtualSubs = VIRTUAL_CATEGORIES[currentCategory];
   let topicsToShow;
   if (virtualSubs) {
@@ -13600,8 +13659,29 @@ function renderList() {
     topicsToShow = getTopicsForCategory(currentCategory).map(t => ({ category: currentCategory, topic: t }));
   }
 
+  // 絞り込みチップ（未着手／苦手あり／仕上がり済）。判定はトピックカードのバッジ基準と共有。
+  const badgeCache = new Map();
+  const badgeOf = item => {
+    const key = item.category + '|' + item.topic;
+    if (!badgeCache.has(key)) badgeCache.set(key, computeTopicBadge(item));
+    return badgeCache.get(key);
+  };
+  const FILTER_OPTIONS = [
+    ['all', 'すべて'], ['none', '未着手'], ['progress', '苦手あり'], ['mastered', '仕上がり済'],
+  ];
+  html += '<div class="topic-filter-row"><div class="topic-filter-seg" role="group" aria-label="トピックの絞り込み">' +
+    FILTER_OPTIONS.map(([val, label]) =>
+      '<button class="topic-filter-btn' + (topicFilter === val ? ' on' : '') + '" data-filter="' + val + '"' +
+        ' aria-pressed="' + (topicFilter === val ? 'true' : 'false') + '">' + label + '</button>'
+    ).join('') +
+  '</div></div>';
+
+  html += '<div class="topic-grid" id="topicGrid">';
+
   if (topicsToShow.length === 0) {
     html += '<div class="empty-state" style="grid-column: 1 / -1;">このカテゴリには資産がありません。</div>';
+  } else if (!topicsToShow.some(item => topicMatchesFilter(badgeOf(item)))) {
+    html += '<div class="empty-state" style="grid-column: 1 / -1;">この絞り込みに当てはまるトピックはありません。</div>';
   }
 
   // セクション定義があるカテゴリはグループ見出しを挿入
@@ -13616,53 +13696,42 @@ function renderList() {
       const sectionItems = section.topics
         .filter(t => topicsToShow.some(item => item.topic === t))
         .map(t => topicsToShow.find(item => item.topic === t))
-        .filter(Boolean);
+        .filter(Boolean)
+        .filter(item => topicMatchesFilter(badgeOf(item)));
       if (sectionItems.length === 0) return;
       html += '<div class="section-header">' + section.label + '</div>';
       sectionItems.forEach(item => {
-        const s = getTopicStats(item.category, item.topic);
-        let badgeClass = 'badge-none', badgeContent = '';
-        if (s.answeredN === 0) { badgeClass = 'badge-none'; badgeContent = ''; }
-        else if (s.wrongN === 0 && s.answeredN === s.total) { badgeClass = 'badge-mastered'; badgeContent = '済'; }
-        else { badgeClass = 'badge-progress'; badgeContent = s.wrongN; }
-        const historyText = s.totalWrongCount > 0 ? '／延べ' + s.totalWrongCount + '回間違い' : '';
+        const badge = badgeOf(item);
+        const historyText = badge.s.totalWrongCount > 0 ? '／延べ' + badge.s.totalWrongCount + '回間違い' : '';
         html += '<div class="topic-card" data-cat="' + item.category + '" data-topic="' + item.topic + '">' +
-          '<div class="mastery-badge ' + badgeClass + '">' + badgeContent + '</div>' +
+          '<div class="mastery-badge ' + badge.badgeClass + '">' + badge.badgeContent + '</div>' +
           '<div class="topic-name">' + item.topic.replace(/_/g,'・').replace(/テーマ・/,'') + '</div>' +
-          '<div class="topic-meta">' + s.answeredN + ' / ' + s.total + ' 問' + levelText(s) + historyText + '</div>' +
+          '<div class="topic-meta">' + badge.s.answeredN + ' / ' + badge.s.total + ' 問' + levelText(badge.s) + historyText + '</div>' +
         '</div>';
       });
     });
-    if (uncategorized.length > 0) {
+    const uncategorizedShown = uncategorized.filter(item => topicMatchesFilter(badgeOf(item)));
+    if (uncategorizedShown.length > 0) {
       html += '<div class="section-header">📁 その他</div>';
-      uncategorized.forEach(item => {
-        const s = getTopicStats(item.category, item.topic);
-        let badgeClass = 'badge-none', badgeContent = '';
-        if (s.answeredN === 0) { badgeClass = 'badge-none'; badgeContent = ''; }
-        else if (s.wrongN === 0 && s.answeredN === s.total) { badgeClass = 'badge-mastered'; badgeContent = '済'; }
-        else { badgeClass = 'badge-progress'; badgeContent = s.wrongN; }
-        const historyText = s.totalWrongCount > 0 ? '／延べ' + s.totalWrongCount + '回間違い' : '';
+      uncategorizedShown.forEach(item => {
+        const badge = badgeOf(item);
+        const historyText = badge.s.totalWrongCount > 0 ? '／延べ' + badge.s.totalWrongCount + '回間違い' : '';
         html += '<div class="topic-card" data-cat="' + item.category + '" data-topic="' + item.topic + '">' +
-          '<div class="mastery-badge ' + badgeClass + '">' + badgeContent + '</div>' +
+          '<div class="mastery-badge ' + badge.badgeClass + '">' + badge.badgeContent + '</div>' +
           '<div class="topic-name">' + item.topic.replace(/_/g,'・') + '</div>' +
-          '<div class="topic-meta">' + s.answeredN + ' / ' + s.total + ' 問' + levelText(s) + historyText + '</div>' +
+          '<div class="topic-meta">' + badge.s.answeredN + ' / ' + badge.s.total + ' 問' + levelText(badge.s) + historyText + '</div>' +
         '</div>';
       });
     }
   } else {
     // セクション定義がないカテゴリは従来通り
-    topicsToShow.forEach(item => {
-      const s = getTopicStats(item.category, item.topic);
-      let badgeClass = 'badge-none';
-      let badgeContent = '';
-      if (s.answeredN === 0) { badgeClass = 'badge-none'; badgeContent = ''; }
-      else if (s.wrongN === 0 && s.answeredN === s.total) { badgeClass = 'badge-mastered'; badgeContent = '済'; }
-      else { badgeClass = 'badge-progress'; badgeContent = s.wrongN; }
-      const historyText = s.totalWrongCount > 0 ? '／延べ' + s.totalWrongCount + '回間違い' : '';
+    topicsToShow.filter(item => topicMatchesFilter(badgeOf(item))).forEach(item => {
+      const badge = badgeOf(item);
+      const historyText = badge.s.totalWrongCount > 0 ? '／延べ' + badge.s.totalWrongCount + '回間違い' : '';
       html += '<div class="topic-card" data-cat="' + item.category + '" data-topic="' + item.topic + '">' +
-        '<div class="mastery-badge ' + badgeClass + '">' + badgeContent + '</div>' +
+        '<div class="mastery-badge ' + badge.badgeClass + '">' + badge.badgeContent + '</div>' +
         '<div class="topic-name">' + item.topic.replace('_','・') + '</div>' +
-        '<div class="topic-meta">' + s.answeredN + ' / ' + s.total + ' 問' + levelText(s) + historyText + '</div>' +
+        '<div class="topic-meta">' + badge.s.answeredN + ' / ' + badge.s.total + ' 問' + levelText(badge.s) + historyText + '</div>' +
       '</div>';
     });
   }
@@ -13693,6 +13762,12 @@ function renderList() {
   document.querySelectorAll('#catTabs .cat-tab').forEach(btn => {
     btn.onclick = () => {
       currentCategory = btn.getAttribute('data-cat');
+      renderList();
+    };
+  });
+  document.querySelectorAll('.topic-filter-btn').forEach(btn => {
+    btn.onclick = () => {
+      topicFilter = btn.getAttribute('data-filter');
       renderList();
     };
   });
