@@ -87,7 +87,7 @@ body {
   justify-content: center;
 }
 
-/* 出題レベル（すべて／基本／応用）の切り替え */
+/* 出題レベル（レベル1／2／3）の切り替え。レベルNを選ぶと「レベルN以下」が出題される */
 .level-row {
   display: flex;
   align-items: center;
@@ -129,10 +129,14 @@ body {
   .level-btn { transition: none; }
 }
 
-/* ===== 「基本のみ」モードの外観 =====
+/* ===== レベル1（最も絞り込んだ範囲）の外観 =====
    通常の和紙色（生成り）に対して、地色と主要な面を薄いグレーに寄せることで、
-   いまどちらの範囲で出題しているかを一目で分かるようにする。
-   文字色や朱・金のアクセントは変えず、面の色だけを置き換える。 */
+   いま最小範囲で出題していることを一目で分かるようにする。レベル2・3は通常の和紙色で、
+   どのレベルかはマストヘッド直下の切り替えUI（.level-seg）が常に示す。
+   文字色や朱・金のアクセントは変えず、面の色だけを置き換える。
+   ※色付き要素をここで上書きするときは、背景だけでなく文字色も必ず明示すること
+     （body要素を含むセレクタはクラスのみのセレクタより詳細度が高く、文字色が取り残されて
+      地の色と同化する。実際に「直前ノート」ボタンでこれが起きた） */
 body.mode-basic { background: #E4E4E2; }
 body.mode-basic .card,
 body.mode-basic .story-card,
@@ -553,7 +557,7 @@ body.mode-basic .topic-filter-btn.on { background: #F7F7F6; }
 .lg-mid { background: #F5E9CC; border: 1px solid #E0CB93; }
 .lg-strong { background: #DCE8D2; border: 1px solid #B9CFA6; }
 @media (max-width: 480px) { .weak-grid { grid-template-columns: repeat(3, 1fr); } }
-/* 「基本のみ」モードではアクセント色をグレーに寄せる（文字色も明示的に上書き） */
+/* レベル1ではアクセント色をグレーに寄せる（文字色も明示的に上書き） */
 body.mode-basic .roadmap-head b,
 body.mode-basic .roadmap-phase-focus b,
 body.mode-basic .roadmap-score b,
@@ -13368,8 +13372,8 @@ function getNextBookmarkTopic(category, topic) {
 }
 
 // トピックカードの分母・分子は「今出題される範囲」を表すようにする。
-// 「基本のみ」では answeredN・total とも基本問題（0問なら全問フォールバック）基準に切り替わるため、
-// カード側は常に s.answeredN + ' / ' + s.total と書くだけで「0 / 13問」のように正しく縮む。
+// レベル1・2では answeredN・total とも該当レベル以下の問題（0問なら全問フォールバック）基準に
+// 切り替わるため、カード側は常に s.answeredN + ' / ' + s.total と書くだけで正しく縮む。
 function getTopicStats(category, topic) {
   const qs = QUESTIONS.filter(q => q.category === category && q.topic === topic);
   const levelQs = applyLevel(qs); // 出題レベルに応じた実際の出題範囲（0問のトピックは全問にフォールバック）
@@ -13378,22 +13382,22 @@ function getTopicStats(category, topic) {
   const wrongN = levelQs.filter(q => progress.wrongIds.includes(q.id)).length;
   const correctN = levelQs.filter(q => progress.correctIds.includes(q.id)).length;
   const totalWrongCount = levelQs.reduce((sum, q) => sum + (progress.wrongCounts[q.id] || 0), 0);
-  // 基本が0問でフォールバックが効いているか（この場合だけ、基本のみ表示中でも全問が対象になる）
-  const levelFallback = questionLevel === 'basic' && qs.length > 0 && countAtLevel(qs) === 0;
+  // 該当レベルが0問でフォールバックが効いているか（この場合だけ、レベルを絞っていても全問が対象になる）
+  const levelFallback = questionLevel < 3 && qs.length > 0 && countAtLevel(qs) === 0;
   return { total, answeredN, wrongN, correctN, totalWrongCount, levelFallback };
 }
 
-// フォールバックで「基本のみ」表示中でも全問出題になっているトピックにだけ、その旨を添える
+// フォールバックでレベルを絞っていても全問出題になっているトピックにだけ、その旨を添える
 function levelText(s) {
   if (!s.levelFallback) return '';
-  return '<span class="topic-level-none">（基本なし・全問表示）</span>';
+  return '<span class="topic-level-none">（該当なし・全問表示）</span>';
 }
 
 function renderStats() {
   const box = document.getElementById('statsBox');
-  // 全問題数・解答済み・正答率は出題レベルに連動させる（「基本のみ」表示中は基本問題が母数）。
+  // 全問題数・解答済み・正答率は出題レベルに連動させる（レベル1・2ではその範囲が母数）。
   // 苦手問題だけは「苦手な問題」ボタンと同じくレベル非依存のまま（意図的な役割分担）。
-  const levelQs = questionLevel === 'basic' ? getLevelAdjustedQuestions(categories) : QUESTIONS;
+  const levelQs = questionLevel < 3 ? getLevelAdjustedQuestions(categories) : QUESTIONS;
   const levelIds = new Set(levelQs.map(q => q.id));
   const total = levelQs.length;
   const answeredCount = progress.answeredIds.filter(id => levelIds.has(id)).length;
@@ -13440,8 +13444,8 @@ const SCORE_WEIGHTS = [
   { label: '世界の遺産', cats: ['アジア', 'アフリカ', 'アメリカ', 'ヨーロッパ', 'オセアニア'], weight: 55 },
 ];
 
-// カテゴリに属する問題を、トピックごとに「基本のみ」フィルタ（applyLevel）にかけてから合算する。
-// トピック単位で見る理由：基本が0問のトピックは全問出題にフォールバックする既存ルールがあり、
+// カテゴリに属する問題を、トピックごとに出題レベルのフィルタ（applyLevel）にかけてから合算する。
+// トピック単位で見る理由：該当レベルが0問のトピックは全問出題にフォールバックする既存ルールがあり、
 // カテゴリ全体に一括でフィルタをかけるとこのフォールバックを再現できないため。
 function getLevelAdjustedQuestions(cats) {
   const topicKeys = new Set();
@@ -13454,11 +13458,11 @@ function getLevelAdjustedQuestions(cats) {
   return result;
 }
 
-// 合格ロードマップの得点推定・弱点ヒートマップ専用。出題レベル（基本のみ／すべて）の
-// 表示切り替えとは無関係に、常に全問（応用込み）を母数にする。
-// 理由：本番の試験は応用問題も出るため、「基本のみ」を選んでいる間だけ分母が縮んで
-// 推定点が200点に張り付く（＝基本を完答しただけで満点と表示される）のは実態と乖離する。
-// 「基本のみ」表示は出題側の絞り込みであって、実力の推定はどちらの表示中でも変わらないほうが正しい。
+// 合格ロードマップの得点推定・弱点ヒートマップ専用。出題レベル（レベル1〜3）の
+// 表示切り替えとは無関係に、常に全問（＝レベル3相当）を母数にする。
+// 理由：本番の試験は上位レベル相当の問題も出るため、レベルを絞っている間だけ分母が縮んで
+// 推定点が200点に張り付く（＝レベル1を完答しただけで満点と表示される）のは実態と乖離する。
+// レベルの絞り込みは出題側の話であって、実力の推定はどのレベル表示中でも変わらないほうが正しい。
 function getExamQuestions(cats) {
   return QUESTIONS.filter(q => cats.includes(q.category));
 }
@@ -13492,10 +13496,10 @@ function computePriorityBoard() {
 //  ・分野／地域別の弱点をヒートマップで色分けし、セルを押すとその範囲の
 //    「未解答＋苦手」だけを出題する弱点ドリルに入る（＝Option1の弱点可視化）
 //
-// 得点推定とヒートマップの母数は getExamQuestions() で常に全問（応用込み）に固定し、
-// 出題レベル（基本のみ／すべて）の表示切り替えとは連動させない。連動させると
-// 「基本のみ」選択中に基本問題を完答しただけで推定点が200点に張り付いてしまい、
-// 本番は応用問題も出るという実態と食い違うため（基本のみを完答しても実際は160点に届かない）。
+// 得点推定とヒートマップの母数は getExamQuestions() で常に全問（＝レベル3相当）に固定し、
+// 出題レベル（レベル1〜3）の表示切り替えとは連動させない。連動させると
+// レベル1選択中にレベル1の問題を完答しただけで推定点が200点に張り付いてしまい、
+// 本番は上位レベル相当も出るという実態と食い違うため（レベル1を完答しても実際は160点に届かない）。
 // 出題レベルが実際に効くのは、クリック後のドリル（openWeaknessDrill）が出す問題の範囲だけ。
 const EXAM_66 = { exam: new Date(2026, 11, 13), cbt: new Date(2026, 10, 29), target: 160, fullMark: 200 };
 const ROADMAP_PHASES = [
@@ -13716,30 +13720,26 @@ function renderRoundRow() {
     '</button>';
   };
   return '<div class="round-eyebrow">🔁 周回モード（過去問の代わりに、解答履歴で3周する）' +
-      (questionLevel === 'basic' ? '<span class="round-eyebrow-note">基本のみが対象</span>' : '') +
+      (questionLevel < 3 ? '<span class="round-eyebrow-note">' + LEVEL_LABELS[questionLevel] + 'までが対象</span>' : '') +
     '</div>' +
     '<div class="round-row" id="roundRow">' + btn(1) + btn(2) + btn(3) + '</div>';
 }
 
-// 出題レベル（基本のみ／すべて）の切り替え。マストヘッド直下の固定枠に描画するため、
+// 出題レベル（レベル1〜3）の切り替え。マストヘッド直下の固定枠に描画するため、
 // ホーム画面（renderList）だけでなく問題画面など全ビューで常に見える・切り替えられる。
 function renderLevelRow() {
   const box = document.getElementById('levelRow');
   if (!box) return;
-  const levelNote = questionLevel === 'basic'
-    ? '解説で強調されている重要語を扱う問題だけ'
-    : 'すべての問題を出題します';
-  box.innerHTML = '<div class="level-seg" role="group" aria-label="出題範囲">' +
-      ['basic', 'all'].map(lv => {
-        const label = lv === 'basic' ? '基本のみ' : 'すべて';
-        return '<button class="level-btn' + (questionLevel === lv ? ' on' : '') + '" data-level="' + lv + '"' +
-          ' aria-pressed="' + (questionLevel === lv ? 'true' : 'false') + '">' + label + '</button>';
-      }).join('') +
+  box.innerHTML = '<div class="level-seg" role="group" aria-label="出題レベル">' +
+      [1, 2, 3].map(lv =>
+        '<button class="level-btn' + (questionLevel === lv ? ' on' : '') + '" data-level="' + lv + '"' +
+          ' aria-pressed="' + (questionLevel === lv ? 'true' : 'false') + '">' + LEVEL_LABELS[lv] + '</button>'
+      ).join('') +
     '</div>' +
-    '<span class="level-note">' + levelNote + '</span>';
+    '<span class="level-note">' + LEVEL_NOTES[questionLevel] + '</span>';
   box.querySelectorAll('.level-btn').forEach(btn => {
     btn.onclick = () => {
-      questionLevel = btn.getAttribute('data-level');
+      questionLevel = Number(btn.getAttribute('data-level'));
       saveQuestionLevel();
       renderStats();
       renderLevelRow();
@@ -13991,8 +13991,8 @@ function openCustomReview(ids, label) {
 //   3周目 … 2回以上間違えていて、まだ正解できていない問題（本当に手強いもの）
 //
 // 対象は配点優先度ダッシュボードと同じ getLevelAdjustedQuestions() を使い、出題レベルに連動させる。
-// 「基本のみ」表示中は基本問題だけが母数になるため、1〜3周目とも「すべて」表示時より件数が減る。
-// （旧仕様では全問題を母数にしていたため、基本/すべてを切り替えても件数が変わらず紛らわしかった）
+// レベル1・2ではその範囲だけが母数になるため、1〜3周目ともレベル3表示時より件数が減る。
+// （旧仕様では全問題を母数にしていたため、レベルを切り替えても件数が変わらず紛らわしかった）
 // 独立した「苦手な問題」ボタン（review-buttons-row）は従来通りレベル非依存のまま——
 // こちらは「今の学習範囲での2周目」、あちらは「レベルを問わず今持っている苦手全部」という役割分担。
 function getRoundIds(round) {
@@ -14014,7 +14014,7 @@ const ROUND_LABELS = {
 function openRoundReview(round) {
   const ids = getRoundIds(round);
   if (ids.length === 0) return;
-  openCustomReview(ids, ROUND_LABELS[round] + (questionLevel === 'basic' ? '（基本のみ）' : ''));
+  openCustomReview(ids, ROUND_LABELS[round] + (questionLevel < 3 ? '（' + LEVEL_LABELS[questionLevel] + 'まで）' : ''));
 }
 
 function renderLowAccuracyView() {
@@ -14301,35 +14301,47 @@ function unmaskPlainYears(html) {
   });
 }
 
-// 出題レベル：解説でハイライトされている重要語を扱う問題を「基本」、
-// それ以外の細かい問題を「応用」として切り替えられるようにする。
+// 出題レベル：解説のハイライト（<b>）の網羅度で問題を3段階に分け、累積で出題範囲を広げる。
+//   レベル1 … 答えの全項目がハイライト語。太字を覚えていれば答えられる層
+//   レベル2 … 答えの一部がハイライト語。太字を足がかりに周辺知識を上乗せする「応用」層
+//   レベル3 … 答えにハイライト語が出てこない。解説の要約を超えて節を読み込む「徹底理解」層
+// レベルNを選ぶと「レベルN以下」が出題される（累積）ので、レベル3＝全問となる。
 const LEVEL_KEY = 'question_level';
-let questionLevel = 'basic'; // 'all' | 'basic'。初期値は「基本のみ」
-let basicIdSet = null;       // 基本問題のIDを保持する集合（初回に構築）
+let questionLevel = 1;       // 1 | 2 | 3。初期値はレベル1
+let questionTierMap = null;  // 問題ID → 1/2/3（初回に構築）
+
+const LEVEL_LABELS = { 1: 'レベル1', 2: 'レベル2', 3: 'レベル3' };
+const LEVEL_NOTES = {
+  1: '解説の太字を答えられるかを問う基本層だけ',
+  2: 'レベル1＋、太字を足がかりに周辺知識まで問う応用層',
+  3: 'レベル1〜2＋、節を読み込まないと答えられない層（＝全問）',
+};
 
 function loadQuestionLevel() {
   try {
     const saved = localStorage.getItem(LEVEL_KEY);
-    // 未設定なら「基本のみ」で始める。自分で「すべて」を選んだ場合はその選択を尊重する。
-    // 以前の 'advanced' が保存されていても「すべて」として扱う。
-    if (saved === null) questionLevel = 'basic';
-    else questionLevel = saved === 'basic' ? 'basic' : 'all';
-  } catch (e) { questionLevel = 'basic'; }
+    // 未設定ならレベル1で始める。自分で広げた場合はその選択を尊重する。
+    // 旧版の 'basic'（＝現在のレベル1）／'all'・'advanced'（＝全問なのでレベル3）から引き継ぐ。
+    if (saved === null) questionLevel = 1;
+    else if (saved === '1' || saved === '2' || saved === '3') questionLevel = Number(saved);
+    else questionLevel = saved === 'basic' ? 1 : 3;
+  } catch (e) { questionLevel = 1; }
   applyLevelTheme();
 }
 function saveQuestionLevel() {
-  try { localStorage.setItem(LEVEL_KEY, questionLevel); } catch (e) {}
+  try { localStorage.setItem(LEVEL_KEY, String(questionLevel)); } catch (e) {}
   applyLevelTheme();
 }
-// どちらのモードか一目で分かるように、ページ全体の地色を切り替える
+// 最も絞り込んだレベル1のときだけ、ページ全体の地色をグレーに寄せて一目で分かるようにする
+// （レベル2・3は通常の和紙色。どのレベルかはマストヘッド直下の切り替えUIが常に示す）
 function applyLevelTheme() {
-  if (document.body) document.body.classList.toggle('mode-basic', questionLevel === 'basic');
+  if (document.body) document.body.classList.toggle('mode-basic', questionLevel === 1);
 }
 
-// 「基本」の判定：答えの全項目が、そのトピックの解説でハイライトされた語を含むこと。
-// 1項目でもハイライト外が混じる問題（例：ハイライト済の技術名＋未ハイライトの著書名）は応用とする。
+// レベル判定：答えを「／」で項目に分け、そのトピックの解説でハイライトされた語を
+// 含む項目が「全部／一部／ゼロ」のどれかでレベル1／2／3に振り分ける。
 // 年号だけは照合の手がかりから外す。文脈の違う年号（例：解説の「1872年」は操業開始年）と
-// 答えの中の同じ数字が偶然一致し、誤って基本と判定されるため。
+// 答えの中の同じ数字が偶然一致し、誤って上のレベルと判定されるため。
 const BASIC_YEAR_RE = /^(前)?\d{3,4}年$/;
 
 // 解説では複数の名称が「中尊寺・毛越寺・観自在王院跡・無量光院跡」のように
@@ -14339,7 +14351,7 @@ const BASIC_YEAR_RE = /^(前)?\d{3,4}年$/;
 // 別の文脈の数値と偶然一致するので分解しない。
 // また「登録・情報照会・登録延期・不登録」のような分解で2文字の断片（例：「登録」）が
 // 生まれると、その分野の説明文にほぼ必ず登場する汎用語になってしまい、
-// 無関係な問題まで「基本」判定に紛れ込む。分解後の断片は3文字以上のみ採用する。
+// 無関係な問題まで上のレベルに紛れ込む。分解後の断片は3文字以上のみ採用する。
 function expandCompoundTerms(list) {
   const out = new Set();
   for (const t of list) {
@@ -14353,7 +14365,7 @@ function expandCompoundTerms(list) {
   return [...out];
 }
 
-// トピックごとの「解説でハイライトされた語」一覧。基本/応用判定と、構成資産ボードの
+// トピックごとの「解説でハイライトされた語」一覧。出題レベルの判定と、構成資産ボードの
 // 暗記モード対象の両方から参照するので、一度作ったら使い回す。
 let highlightTermsCache = null;
 function getHighlightTerms(key) {
@@ -14370,30 +14382,29 @@ function getHighlightTerms(key) {
   return highlightTermsCache[key] || [];
 }
 
-function buildBasicSet() {
-  basicIdSet = {};
+function buildTierMap() {
+  questionTierMap = {};
   QUESTIONS.forEach(q => {
     const list = getHighlightTerms(q.category + '|' + q.topic);
-    if (!list.length) return;
     const items = q.answer.split('／').map(s => s.trim()).filter(Boolean);
-    if (!items.length) return;
-    const allCovered = items.every(item => list.some(t => item.indexOf(t) !== -1));
-    if (allCovered) basicIdSet[q.id] = true;
+    if (!list.length || !items.length) { questionTierMap[q.id] = 3; return; }
+    const hit = items.filter(item => list.some(t => item.indexOf(t) !== -1)).length;
+    questionTierMap[q.id] = hit === items.length ? 1 : (hit > 0 ? 2 : 3);
   });
 }
-function isBasicQuestion(q) {
-  if (!basicIdSet) buildBasicSet();
-  return !!basicIdSet[q.id];
+function tierOf(q) {
+  if (!questionTierMap) buildTierMap();
+  return questionTierMap[q.id] || 3;
 }
-// 選択中のレベルで出題対象を絞り込む。0問になる場合は全問にフォールバックする。
+// 選択中のレベル以下の問題に絞り込む（累積）。0問になる場合は全問にフォールバックする。
 function applyLevel(arr) {
-  if (questionLevel !== 'basic') return arr;
-  const filtered = arr.filter(isBasicQuestion);
-  return filtered.length > 0 ? filtered : arr; // 基本が0問のトピックは全問出題にする
+  if (questionLevel >= 3) return arr;
+  const filtered = arr.filter(q => tierOf(q) <= questionLevel);
+  return filtered.length > 0 ? filtered : arr; // 該当が0問のトピックは全問出題にする
 }
 function countAtLevel(arr) {
-  if (questionLevel !== 'basic') return arr.length;
-  return arr.filter(isBasicQuestion).length;
+  if (questionLevel >= 3) return arr.length;
+  return arr.filter(q => tierOf(q) <= questionLevel).length;
 }
 function orderQueue(arr) {
   return shuffleArray(arr);
