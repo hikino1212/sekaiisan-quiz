@@ -14104,7 +14104,19 @@ function renderLevelRow() {
       saveQuestionLevel();
       renderStats();
       renderLevelRow();
-      if (view === 'list') renderList();
+      if (view === 'list') { renderList(); return; }
+      // トピックを開いたままレベルを変えたら、そのトピックを新しいレベルで開き直す。
+      // 出題キューは openTopic() の中で applyLevel() を通して作られるので、ここで
+      // 開き直さないと「レベル3を選んだのにレベル1の12問しか出ない」という食い違いが残る
+      // （レベル別の到達目標も再描画されない）。今表示している問題が新しい範囲にも
+      // 含まれていればその問題のまま、外れていれば先頭から再開する（jumpToQuestion）。
+      if (view === 'topic' && currentTopicKey) {
+        const sep = currentTopicKey.indexOf('|');
+        const cur = topicQueue[qIndex];
+        openTopic(currentTopicKey.slice(0, sep), currentTopicKey.slice(sep + 1), cur && cur.id);
+      }
+      // 苦手な問題・周回モード・ブックマークの復習（currentTopicKey が null）は、
+      // 出題する集合を利用者が明示的に選んだものなので、レベル変更で勝手に作り直さない。
     };
   });
 }
