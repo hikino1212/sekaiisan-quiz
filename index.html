@@ -14715,7 +14715,7 @@ function renderTopicView() {
     '</div>' +
     renderDiagram(category, topic) +
     renderAssetBoard(category, topic) +
-    renderImageBoard() +
+    // renderImageBoard() +  // 画像メモ機能はいったんオフ（2026-08-31、ユーザー指示）
     '</div>';
   } else if (crossTopicMode === 'bookmark') {
     const filterLabel = bookmarkFilter
@@ -14786,7 +14786,7 @@ function renderTopicView() {
       document.getElementById('quickMemoBox').style.display = 'none';
       alert('メモを保存しました。');
     };
-    wireTopicImageBoard(currentTopicKey);
+    // wireTopicImageBoard(currentTopicKey);  // 画像メモ機能はいったんオフ（2026-08-31、ユーザー指示）
   }
   renderQuizCard();
 }
