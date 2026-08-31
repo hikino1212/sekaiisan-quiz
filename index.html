@@ -681,6 +681,37 @@ body.mode-basic .asset-chip.is-star { background: #F1F1EF; border-color: #C4C4BF
 body.mode-basic .asset-chip.is-flip { background: #EFF3EB; border-color: #BFCDB4; }
 body.mode-basic .asset-group-head::after { background: #DCDCD9; }
 
+/* 画像メモ — 利用者が私的複製として貼った画像。IndexedDBにこの端末だけ保存される */
+.img-board-hint { font-size: 10.5px; color: #A09781; font-weight: 400; margin-left: 6px; }
+.img-board-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 8px; margin-bottom: 10px;
+}
+.img-thumb {
+  position: relative; aspect-ratio: 1; border-radius: 5px; overflow: hidden;
+  border: 1px solid #E2D7B8; background: #FFFDF7;
+}
+.img-thumb img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; display: block; }
+.img-del-btn {
+  position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; line-height: 18px;
+  border-radius: 50%; border: none; background: rgba(30,26,20,0.62); color: #F8F2E3;
+  font-size: 13px; cursor: pointer; padding: 0;
+}
+.img-add-btn {
+  display: inline-block; font-size: 12.5px; color: #9B3B2E;
+  border: 1px dashed #D9B78A; border-radius: 5px; padding: 7px 14px; cursor: pointer;
+}
+.img-add-btn:active { background: #FDF6E6; }
+.img-lightbox {
+  position: fixed; inset: 0; z-index: 999; background: rgba(20,17,12,0.88);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  cursor: zoom-out;
+}
+.img-lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px; }
+body.mode-basic .img-thumb { background: #FCFCFB; border-color: #D9D9D5; }
+body.mode-basic .img-add-btn { color: #5B5346; border-color: #C4C4BF; }
+body.mode-basic .img-add-btn:active { background: #F1F1EF; }
+
 /* 図解（DIAGRAMS）— トピック解説直後の自作の構造図 */
 .figure-title {
   font-size: 13px; font-weight: 700; color: #9B3B2E;
@@ -13140,6 +13171,117 @@ async function saveMemos() {
   }
 }
 
+// ============ トピック画像（IndexedDB、この端末だけに保存） ============
+// 公式テキストの画像そのものは著作物なので公開ビルド（GitHub Pages／Artifact）には一切含めない。
+// 代わりに、利用者が私的複製として保存した画像をこの端末のブラウザ内（IndexedDB）だけに置く。
+// window.storage（進捗・メモ）や自動バックアップ（Google Drive）の対象にはしない——
+// 画像は他の端末やクラウドへ一切送信・同期されない、という前提を仕組みでも保証するため。
+const IMG_DB_NAME = 'sekaiisan_topic_images';
+const IMG_STORE = 'images';
+
+function openImageDB() {
+  return new Promise((resolve, reject) => {
+    if (!('indexedDB' in window)) { reject(new Error('IndexedDB unavailable')); return; }
+    const req = indexedDB.open(IMG_DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(IMG_STORE)) {
+        const store = db.createObjectStore(IMG_STORE, { keyPath: 'id' });
+        store.createIndex('topicKey', 'topicKey', { unique: false });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function addTopicImage(topicKey, file) {
+  return openImageDB().then(db => new Promise((resolve, reject) => {
+    const id = 'img' + Date.now() + Math.random().toString(36).slice(2, 8);
+    const tx = db.transaction(IMG_STORE, 'readwrite');
+    tx.objectStore(IMG_STORE).add({ id, topicKey, blob: file, addedAt: Date.now() });
+    tx.oncomplete = () => resolve(id);
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+
+function getTopicImages(topicKey) {
+  return openImageDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(IMG_STORE, 'readonly');
+    const req = tx.objectStore(IMG_STORE).index('topicKey').getAll(topicKey);
+    req.onsuccess = () => resolve(req.result.sort((a, b) => a.addedAt - b.addedAt));
+    req.onerror = () => reject(req.error);
+  })).catch(() => []);
+}
+
+function deleteTopicImage(id) {
+  return openImageDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(IMG_STORE, 'readwrite');
+    tx.objectStore(IMG_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+
+// トピック解説の直後に置く画像メモの枠。データはIndexedDBにあるため、まず空の枠を
+// 同期的に返し（renderAssetBoard等と同じ流儀）、DOM挿入後に wireTopicImageBoard() が
+// 非同期で中身を差し込む。
+function renderImageBoard() {
+  return '<div class="story-card">' +
+    '<div class="story-eyebrow">🖼 画像メモ<span class="img-board-hint">（この端末だけに保存・共有されません）</span></div>' +
+    '<div class="img-board-grid" id="topicImgGrid"></div>' +
+    '<label class="img-add-btn" for="topicImgInput">＋ 画像を追加</label>' +
+    '<input type="file" id="topicImgInput" accept="image/*" multiple style="display:none;">' +
+    '</div>';
+}
+
+function openImageLightbox(src) {
+  const existing = document.getElementById('imgLightbox');
+  if (existing) existing.remove();
+  const div = document.createElement('div');
+  div.id = 'imgLightbox';
+  div.className = 'img-lightbox';
+  div.innerHTML = '<img src="' + src + '" alt="">';
+  div.onclick = () => div.remove();
+  document.body.appendChild(div);
+}
+
+async function wireTopicImageBoard(topicKey) {
+  const grid = document.getElementById('topicImgGrid');
+  const input = document.getElementById('topicImgInput');
+  if (!grid || !input) return;
+
+  async function refresh() {
+    let images = [];
+    try { images = await getTopicImages(topicKey); } catch (e) { images = []; }
+    grid.innerHTML = images.map(img =>
+      '<div class="img-thumb">' +
+        '<img src="' + URL.createObjectURL(img.blob) + '" alt="">' +
+        '<button class="img-del-btn" data-id="' + img.id + '" aria-label="削除">×</button>' +
+      '</div>'
+    ).join('');
+    grid.querySelectorAll('.img-thumb img').forEach(el => {
+      el.onclick = () => openImageLightbox(el.src);
+    });
+    grid.querySelectorAll('.img-del-btn').forEach(btn => {
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        await deleteTopicImage(btn.getAttribute('data-id'));
+        refresh();
+      };
+    });
+  }
+
+  input.onchange = async () => {
+    for (const f of Array.from(input.files || [])) {
+      if (f.type.startsWith('image/')) await addTopicImage(topicKey, f);
+    }
+    input.value = '';
+    refresh();
+  };
+
+  refresh();
+}
 
 const categories = ['基礎知識', '日本_文化遺産', '日本_自然遺産', 'ヨーロッパ', 'オセアニア', 'アジア', 'アフリカ', 'アメリカ', 'テーマ別_地域横断'];
 
@@ -14573,6 +14715,7 @@ function renderTopicView() {
     '</div>' +
     renderDiagram(category, topic) +
     renderAssetBoard(category, topic) +
+    renderImageBoard() +
     '</div>';
   } else if (crossTopicMode === 'bookmark') {
     const filterLabel = bookmarkFilter
@@ -14643,6 +14786,7 @@ function renderTopicView() {
       document.getElementById('quickMemoBox').style.display = 'none';
       alert('メモを保存しました。');
     };
+    wireTopicImageBoard(currentTopicKey);
   }
   renderQuizCard();
 }
