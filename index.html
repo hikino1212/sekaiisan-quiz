@@ -1162,6 +1162,13 @@ body.mode-basic .topic-hero-img { border-color: #D9D9D5; }
 }
 body.mode-basic .img-bulk-result { background: #FCFCFB; border-color: #D9D9D5; }
 
+/* 画像メモはテキストのメモと同じ「メモ」欄の中に置く。別カードにしない。 */
+.img-board { margin-top: 14px; padding-top: 12px; border-top: 1px dashed #D8CBA8; }
+.img-board-title { font-size: 12px; font-weight: 700; color: #6B6455; margin-bottom: 8px; }
+body.mode-basic .img-board { border-top-color: #D6D6D2; }
+button.img-add-btn { font-family: inherit; background: transparent; }
+button.img-add-btn:disabled { opacity: 0.5; cursor: default; }
+
 </style>
 </head>
 <body>
@@ -13745,18 +13752,67 @@ function deleteTopicImage(id) {
   }));
 }
 
+// --- Drive同期のための補助 ---
+// 画像は端末内（IndexedDB）が正で、Driveは「別の端末へ渡すための置き場」として使う。
+// driveId を持つ＝Driveに上げ済み。これを見て二重アップロード・二重取り込みを防ぐ。
+function getAllImages() {
+  return openImageDB().then(db => new Promise((resolve, reject) => {
+    const req = db.transaction(IMG_STORE, 'readonly').objectStore(IMG_STORE).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  })).catch(() => []);
+}
+
+function putImageRecord(rec) {
+  return openImageDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(IMG_STORE, 'readwrite');
+    tx.objectStore(IMG_STORE).put(rec);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+
+async function setImageDriveId(id, driveId) {
+  const all = await getAllImages();
+  const rec = all.find(r => r.id === id);
+  if (!rec) return;
+  rec.driveId = driveId;
+  await putImageRecord(rec);
+}
+
+function blobToB64(blob) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(String(fr.result).split(',')[1] || '');
+    fr.onerror = () => reject(fr.error);
+    fr.readAsDataURL(blob);
+  });
+}
+
+function b64ToBlob(b64, mime) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: mime || 'image/jpeg' });
+}
+
 // トピック解説の直後に置く画像メモの枠。データはIndexedDBにあるため、まず空の枠を
 // 同期的に返し（renderAssetBoard等と同じ流儀）、DOM挿入後に wireTopicImageBoard() が
 // 非同期で中身を差し込む。
+// 画像メモはテキストのメモと同じ「メモ」欄の中に置く（別カードにしない）。
+// 利用者にとって「このトピックに残すもの」は文章も画像も同じ引き出しなので、
+// 入口を2つに分けない方が分かりやすい。
 function renderImageBoard() {
-  return '<div class="story-card">' +
-    '<div class="story-eyebrow">🖼 画像メモ<span class="img-board-hint">（この端末だけに保存・共有されません）</span></div>' +
+  return '<div class="img-board">' +
+    '<div class="img-board-title">🖼 画像<span class="img-board-hint">（端末内に保存。Driveへ上げれば他の端末でも見られます）</span></div>' +
     '<div class="img-board-grid" id="topicImgGrid"></div>' +
     '<div class="img-btn-row">' +
-      '<label class="img-add-btn" for="topicImgInput">＋ このトピックに画像を追加</label>' +
+      '<label class="img-add-btn" for="topicImgInput">＋ 画像を追加</label>' +
       '<label class="img-add-btn" for="bulkImgInput">🗂 まとめて取り込む</label>' +
+      '<button class="img-add-btn" id="imgDriveUpBtn" type="button">☁ Driveへ保存</button>' +
+      '<button class="img-add-btn" id="imgDriveDownBtn" type="button">☁ Driveから取り込む</button>' +
     '</div>' +
-    '<div class="img-bulk-note">まとめて取り込みは、ファイル名が「カテゴリ｜トピック名」のとき自動で振り分けます（例：日本_文化遺産｜縄文遺跡群.jpg）。端末ごとに1度だけ行えば済みます。</div>' +
+    '<div class="img-bulk-note">「まとめて取り込む」はファイル名が「カテゴリ｜トピック名」のとき自動で振り分けます（例：日本_文化遺産｜縄文遺跡群.jpg）。<br>Drive経由なら、PCで上げた画像をiPhoneの「Driveから取り込む」で受け取れます（削除は同期されません）。</div>' +
     '<div id="bulkImgResult"></div>' +
     '<input type="file" id="topicImgInput" accept="image/*" multiple style="display:none;">' +
     '<input type="file" id="bulkImgInput" accept="image/*" multiple style="display:none;">' +
@@ -13843,6 +13899,36 @@ async function wireTopicImageBoard(topicKey) {
     refresh();
   };
 
+  const box = document.getElementById('bulkImgResult');
+  const say = html => { if (box) box.innerHTML = '<div class="img-bulk-result">' + html + '</div>'; };
+
+  const upBtn = document.getElementById('imgDriveUpBtn');
+  const downBtn = document.getElementById('imgDriveDownBtn');
+  if (upBtn) {
+    upBtn.onclick = async () => {
+      if (!driveAvailable()) { say(driveErrorMessage({ code: 'capability_disabled' })); return; }
+      upBtn.disabled = true; say('Driveへ保存しています…');
+      try {
+        const r = await uploadImagesToDrive();
+        say(r.uploaded ? r.uploaded + '件をDriveへ保存しました（保存済み合計 ' + r.total + '件）。他の端末では「Driveから取り込む」を押してください。'
+                       : 'Driveへ新しく上げるものはありませんでした。');
+      } catch (e) { say('✗ ' + driveErrorMessage(e)); }
+      upBtn.disabled = false;
+    };
+  }
+  if (downBtn) {
+    downBtn.onclick = async () => {
+      if (!driveAvailable()) { say(driveErrorMessage({ code: 'capability_disabled' })); return; }
+      downBtn.disabled = true; say('Driveから取り込んでいます…');
+      try {
+        const r = await downloadImagesFromDrive();
+        say(r.downloaded ? r.downloaded + '件を取り込みました。' : 'この端末に無い画像はありませんでした。');
+        refresh();
+      } catch (e) { say('✗ ' + driveErrorMessage(e)); }
+      downBtn.disabled = false;
+    };
+  }
+
   if (bulk) {
     bulk.onchange = async () => {
       const files = Array.from(bulk.files || []).filter(f => f.type.startsWith('image/'));
@@ -13854,13 +13940,9 @@ async function wireTopicImageBoard(topicKey) {
         ok++;
       }
       bulk.value = '';
-      const box = document.getElementById('bulkImgResult');
-      if (box) {
-        box.innerHTML = '<div class="img-bulk-result">' + ok + '件を取り込みました。' +
-          (skipped.length ? '<br>トピック名が判別できず飛ばしたファイル（' + skipped.length + '件）：' +
-            skipped.slice(0, 5).join('、') + (skipped.length > 5 ? ' ほか' : '') : '') +
-          '</div>';
-      }
+      say(ok + '件を取り込みました。' +
+        (skipped.length ? '<br>トピック名が判別できず飛ばしたファイル（' + skipped.length + '件）：' +
+          skipped.slice(0, 5).join('、') + (skipped.length > 5 ? ' ほか' : '') : ''));
       refresh();
     };
   }
@@ -14137,13 +14219,17 @@ async function gisCallTool(tool, input) {
       parents: input.parentId ? [input.parentId] : undefined,
     };
     const mime = input.contentMimeType || 'application/json';
+    // 画像などのバイナリは base64Content で受け、multipart側も base64 転送にする
+    // （JS文字列に生バイトを入れると壊れるため）。MCP版のcreate_fileと同じ入力形に揃えてある。
+    const isB64 = typeof input.base64Content === 'string';
     const body =
       '--' + boundary + '\r\n' +
       'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
       JSON.stringify(metadata) + '\r\n' +
       '--' + boundary + '\r\n' +
-      'Content-Type: ' + mime + '\r\n\r\n' +
-      (input.textContent || '') + '\r\n' +
+      'Content-Type: ' + mime + '\r\n' +
+      (isB64 ? 'Content-Transfer-Encoding: base64\r\n' : '') + '\r\n' +
+      (isB64 ? input.base64Content : (input.textContent || '')) + '\r\n' +
       '--' + boundary + '--';
     const res = await gisAuthedFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
       method: 'POST',
@@ -14157,8 +14243,15 @@ async function gisCallTool(tool, input) {
   if (tool === 'download_file_content') {
     const res = await gisAuthedFetch('https://www.googleapis.com/drive/v3/files/' + input.fileId + '?alt=media');
     if (!res.ok) throw await gisErrorFromResponse(res);
-    const text = await res.text();
-    return { content: utf8ToB64(text) };
+    // 生バイトをそのままbase64にする。res.text()だと画像が壊れるため。
+    // テキスト（JSONスナップショット）の場合もUTF-8バイトのbase64になり、
+    // 受け側の b64ToUtf8 がそのまま復元できるので、従来の呼び出しは無改造で動く。
+    const buf = new Uint8Array(await res.arrayBuffer());
+    let bin = '';
+    for (let i = 0; i < buf.length; i += 8192) {
+      bin += String.fromCharCode.apply(null, buf.subarray(i, i + 8192));
+    }
+    return { content: btoa(bin) };
   }
   throw { code: 'unsupported_tool' };
 }
@@ -14179,6 +14272,89 @@ async function getDriveFolderId() {
   }
   driveFolderIdCache = id;
   return id;
+}
+
+// --- 画像のDrive同期 ---
+// 画像はもともと端末内（IndexedDB）だけに置く設計だったが、PCとiPhoneで同じ画像を見たい
+// という要望のため、利用者自身のDriveを「端末間の受け渡し場所」として使えるようにした。
+// 公開ビルドに埋め込むわけではないので、教科書の写真を公衆送信しないという方針は変わらない。
+//
+// 双方向の完全同期ではなく「上げる／取り込む」の2操作にしてある。削除は伝播しない
+// （消したつもりが別端末から復活する、という分かりにくさを避けるため）。
+const DRIVE_IMAGE_FOLDER_NAME = '画像メモ';
+let driveImageFolderIdCache = null;
+
+async function getDriveImageFolderId() {
+  if (driveImageFolderIdCache) return driveImageFolderIdCache;
+  const parent = await getDriveFolderId();
+  const found = await driveCallTool('search_files', {
+    query: "title = '" + DRIVE_IMAGE_FOLDER_NAME + "' and mimeType = 'application/vnd.google-apps.folder' and parentId = '" + parent + "'",
+  });
+  let id = found && found.files && found.files[0] && found.files[0].id;
+  if (!id) {
+    const created = await driveCallTool('create_file', {
+      title: DRIVE_IMAGE_FOLDER_NAME,
+      mimeType: 'application/vnd.google-apps.folder',
+      parentId: parent,
+    });
+    id = created.id;
+  }
+  driveImageFolderIdCache = id;
+  return id;
+}
+
+// Drive上のファイル名は「カテゴリ｜トピック名__画像ID.jpg」。
+// トピックと画像IDの両方を名前に持たせることで、取り込み側は中身を見ずに振り分けと
+// 重複判定ができる（Driveの一覧だけで済む）。
+function driveImageFileName(rec) {
+  return rec.topicKey.replace(/\|/g, '｜') + '__' + rec.id + '.jpg';
+}
+function parseDriveImageFileName(name) {
+  const m = String(name).match(/^(.+)__(img[^.]+)\.[^.]+$/);
+  if (!m) return null;
+  const key = m[1].replace(/｜/g, '|');
+  return validTopicKeys().has(key) ? { topicKey: key, id: m[2] } : null;
+}
+
+async function uploadImagesToDrive() {
+  const folder = await getDriveImageFolderId();
+  const all = await getAllImages();
+  let n = 0;
+  for (const rec of all) {
+    if (rec.driveId) continue;
+    const b64 = await blobToB64(rec.blob);
+    const created = await driveCallTool('create_file', {
+      title: driveImageFileName(rec),
+      parentId: folder,
+      contentMimeType: rec.blob.type || 'image/jpeg',
+      base64Content: b64,
+      disableConversionToGoogleType: true,
+    });
+    await setImageDriveId(rec.id, created.id);
+    n++;
+  }
+  return { uploaded: n, total: all.length };
+}
+
+async function downloadImagesFromDrive() {
+  const folder = await getDriveImageFolderId();
+  const res = await driveCallTool('search_files', { query: "parentId = '" + folder + "'" });
+  const local = await getAllImages();
+  const haveIds = new Set(local.map(r => r.id));
+  let n = 0, skipped = 0;
+  for (const f of (res && res.files) || []) {
+    const meta = parseDriveImageFileName(f.title);
+    if (!meta) { skipped++; continue; }
+    if (haveIds.has(meta.id)) continue;
+    const dl = await driveCallTool('download_file_content', { fileId: f.id });
+    await putImageRecord({
+      id: meta.id, topicKey: meta.topicKey,
+      blob: b64ToBlob(dl.content, 'image/jpeg'),
+      addedAt: Date.now(), driveId: f.id,
+    });
+    n++;
+  }
+  return { downloaded: n, skipped: skipped };
 }
 
 // ファイル名は progress_YYYYMMDD-HHMMSS_aNNNN.json。
@@ -15293,15 +15469,15 @@ function renderTopicView() {
       '<div class="story-body">' + unmaskPlainYears(story.body) + '</div>' +
       renderLevelGuide(category, topic) +
       '<div style="margin-top:14px; padding-top:12px; border-top:1px dashed #D8CBA8; font-size:12px; color:#8A8270;">出典：' + citeText + '</div>' +
-      '<div style="margin-top:10px;"><span class="backup-link" id="quickMemoLink">+ このトピックにメモを残す</span></div>' +
+      '<div style="margin-top:10px;"><span class="backup-link" id="quickMemoLink">+ このトピックにメモ・画像を残す</span></div>' +
       '<div id="quickMemoBox" style="display:none; margin-top:8px;">' +
         '<textarea class="backup-textarea" id="quickMemoText" placeholder="気づいたこと・疑問点をメモ" style="height:60px;"></textarea>' +
-        '<div class="btn-row" style="margin-top:6px;"><button class="btn" id="quickMemoSaveBtn" style="font-size:12px; padding:7px 14px;">保存</button></div>' +
+        '<div class="btn-row" style="margin-top:6px;"><button class="btn" id="quickMemoSaveBtn" style="font-size:12px; padding:7px 14px;">メモを保存</button></div>' +
+        renderImageBoard() +
       '</div>' +
     '</div>' +
     renderDiagram(category, topic) +
     renderAssetBoard(category, topic) +
-    renderImageBoard() +
     '</div>';
   } else if (crossTopicMode === 'bookmark') {
     const filterLabel = bookmarkFilter
