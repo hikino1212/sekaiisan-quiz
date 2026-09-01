@@ -406,6 +406,20 @@ body.mode-basic .topic-filter-btn.on { background: #F7F7F6; }
 
 .qnum { color: #9A8F70; font-size: 11px; }
 
+/* 各問題がレベル1〜3のどれに当たるかを表示するバッジ。tierOf(q) の結果をそのまま出す。
+   レベル1（赤字・基本層）ほど濃く、レベル3（応用層）ほど地味な色にして、
+   一覧性より「濃さ＝基礎度」の直感を優先した。 */
+.q-level-badge {
+  display: inline-block; margin-left: 8px; font-size: 10px; font-weight: 700;
+  letter-spacing: 0; padding: 2px 7px; border-radius: 100px; vertical-align: 1px;
+}
+.q-level-badge.lv1 { background: #F3E3DC; color: #9B3B2E; }
+.q-level-badge.lv2 { background: #F3EAD3; color: #8A6A2A; }
+.q-level-badge.lv3 { background: #EDEBE4; color: #8A8270; }
+body.mode-basic .q-level-badge.lv1,
+body.mode-basic .q-level-badge.lv2,
+body.mode-basic .q-level-badge.lv3 { background: #E8E8E6; color: #6A6A64; }
+
 .question-text {
   font-family: "Hiragino Mincho ProN", "Yu Mincho", YuMincho, serif;
   font-size: 18px;
@@ -12502,15 +12516,18 @@ function renderAssetBoard(category, topic) {
   // 資産名が強調されている場合だけ、暗記モードの黒塗り対象にする（<b>で囲む）。
   // 強調されていない資産名まで空欄にすると答えようがないため。
   //
-  // 見るのは「解説の <b>」と「公式テキストの赤字」の**和集合**である。片方だけでは漏れる：
-  //   - 赤字だけ … 構成資産の遺産名はテキストの赤字ではないので、ほぼ黒塗りされなくなる
+  // 見るのは「解説の <b>」と「公式テキストの赤字・黒太字（＝出題レベル2までの範囲）」の
+  // **和集合**である。片方だけでは漏れる：
+  //   - テキストの強調語だけ … 構成資産の遺産名はテキストの赤字ではないので、ほぼ黒塗りされなくなる
   //     （実際にこれをやり、縄文遺跡群で17件中1件まで落とした）
   //   - <b> だけ … テキストが最重要としている語でも、解説に出てこなければ漏れる
   // どちらに載っていても「覚えるべき語」なので、両方を対象にする。
+  // 赤字（レベル1）だけでなく黒太字（レベル2）まで含めるのは、出題レベルの粒度と揃えるため
+  // ——「レベル2までを解いた」利用者が、レベル2の範囲の資産名も想起できるようにする。
   // 解説で代表例として <b> にした資産はここで黒塗りに戻るため、増やしたいときは解説側で太字にする。
   const tt = (typeof TEXTBOOK_TERMS !== 'undefined') && TEXTBOOK_TERMS[category + '|' + topic];
   const highlightTerms = getHighlightTerms(category + '|' + topic)
-    .concat(tt ? expandCompoundTerms(tt.red || []) : []);
+    .concat(tt ? expandCompoundTerms((tt.red || []).concat(tt.black || [])) : []);
   const isHighlighted = name => highlightTerms.some(t => name.indexOf(t) !== -1);
   let used = {};
   let body = '';
@@ -15243,10 +15260,11 @@ function renderQuizCard() {
     : '';
   const eyebrowLabel = currentTopicKey ? '問題' : (currentQ.category.replace('_','・') + '｜' + currentQ.topic.replace('_','・'));
   const isBookmarked = progress.bookmarkedIds.includes(currentQ.id);
+  const qTier = tierOf(currentQ);
   qArea.innerHTML =
     '<div class="card">' +
       '<div class="stamp" id="stampMark"><div class="stamp-inner">正</div></div>' +
-      '<div class="card-eyebrow"><span>' + eyebrowLabel + '</span>' +
+      '<div class="card-eyebrow"><span>' + eyebrowLabel + '<span class="q-level-badge lv' + qTier + '" title="' + LEVEL_LABELS[qTier] + '">Lv' + qTier + '</span></span>' +
         '<span style="display:flex; align-items:center; gap:10px;">' +
           '<button class="bookmark-toggle' + (isBookmarked ? ' on' : '') + '" id="bookmarkBtn" title="ブックマーク">' + (isBookmarked ? '★' : '☆') + '</button>' +
           '<span class="qnum">' + (qIndex+1) + ' / ' + topicQueue.length + '</span>' +
