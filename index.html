@@ -12501,12 +12501,16 @@ function renderAssetBoard(category, topic) {
   const MARK = { star: '★', out: '✕', flip: '⚡' };
   // 資産名が強調されている場合だけ、暗記モードの黒塗り対象にする（<b>で囲む）。
   // 強調されていない資産名まで空欄にすると答えようがないため。
-  // 公式テキストの強調語（TEXTBOOK_TERMS）があるトピックは、そちらの赤字を使う——
-  // 移行後は解説の <b> が「解説で触れた語」でしかなくなり、テキストが最重要としている
-  // 資産名でも解説に出てこなければ黒塗りから漏れてしまうため。
+  //
+  // 見るのは「解説の <b>」と「公式テキストの赤字」の**和集合**である。片方だけでは漏れる：
+  //   - 赤字だけ … 構成資産の遺産名はテキストの赤字ではないので、ほぼ黒塗りされなくなる
+  //     （実際にこれをやり、縄文遺跡群で17件中1件まで落とした）
+  //   - <b> だけ … テキストが最重要としている語でも、解説に出てこなければ漏れる
+  // どちらに載っていても「覚えるべき語」なので、両方を対象にする。
+  // 解説で代表例として <b> にした資産はここで黒塗りに戻るため、増やしたいときは解説側で太字にする。
   const tt = (typeof TEXTBOOK_TERMS !== 'undefined') && TEXTBOOK_TERMS[category + '|' + topic];
-  const highlightTerms = tt ? expandCompoundTerms(tt.red || [])
-                            : getHighlightTerms(category + '|' + topic);
+  const highlightTerms = getHighlightTerms(category + '|' + topic)
+    .concat(tt ? expandCompoundTerms(tt.red || []) : []);
   const isHighlighted = name => highlightTerms.some(t => name.indexOf(t) !== -1);
   let used = {};
   let body = '';
