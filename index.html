@@ -1146,6 +1146,22 @@ body.mode-basic .lvg { background: #EFEFED; border-color: #D2D2CE; border-left-c
 body.mode-basic .lvg-head { color: #5A5A55; }
 body.mode-basic .lvg-key { color: #3A3A36; }
 
+/* トピック解説の冒頭に出す「主たる画像」。公式テキストの扉ページの写真と同じ位置づけ。
+   画像は端末のIndexedDBにのみ保存され、公開ビルドには一切含まれない（画像メモと同じ経路）。 */
+.topic-hero-img {
+  display: block; width: 100%; max-height: 240px; object-fit: cover;
+  border-radius: 5px; margin-bottom: 14px; cursor: zoom-in;
+  border: 1px solid #E2D7B8;
+}
+body.mode-basic .topic-hero-img { border-color: #D9D9D5; }
+.img-btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.img-bulk-note { margin-top: 10px; font-size: 11px; color: #8A8270; line-height: 1.7; }
+.img-bulk-result {
+  margin-top: 10px; font-size: 12px; color: #4A4537; line-height: 1.7;
+  background: #FBF7EC; border: 1px solid #E8DEC2; border-radius: 5px; padding: 9px 12px;
+}
+body.mode-basic .img-bulk-result { background: #FCFCFB; border-color: #D9D9D5; }
+
 </style>
 </head>
 <body>
@@ -13736,9 +13752,22 @@ function renderImageBoard() {
   return '<div class="story-card">' +
     '<div class="story-eyebrow">🖼 画像メモ<span class="img-board-hint">（この端末だけに保存・共有されません）</span></div>' +
     '<div class="img-board-grid" id="topicImgGrid"></div>' +
-    '<label class="img-add-btn" for="topicImgInput">＋ 画像を追加</label>' +
+    '<div class="img-btn-row">' +
+      '<label class="img-add-btn" for="topicImgInput">＋ このトピックに画像を追加</label>' +
+      '<label class="img-add-btn" for="bulkImgInput">🗂 まとめて取り込む</label>' +
+    '</div>' +
+    '<div class="img-bulk-note">まとめて取り込みは、ファイル名が「カテゴリ｜トピック名」のとき自動で振り分けます（例：日本_文化遺産｜縄文遺跡群.jpg）。端末ごとに1度だけ行えば済みます。</div>' +
+    '<div id="bulkImgResult"></div>' +
     '<input type="file" id="topicImgInput" accept="image/*" multiple style="display:none;">' +
+    '<input type="file" id="bulkImgInput" accept="image/*" multiple style="display:none;">' +
     '</div>';
+}
+
+// トピック解説の冒頭に「主たる画像」を出す枠。そのトピックの最初の1枚を使う。
+// 公式テキストが扉ページで大きな写真を見せているのと同じ位置づけ。
+// 画像が無いトピックでは何も描画しない（図解・構成資産ボードと同じ流儀）。
+function renderTopicHero() {
+  return '<div id="topicHero"></div>';
 }
 
 function openImageLightbox(src) {
@@ -13752,9 +13781,28 @@ function openImageLightbox(src) {
   document.body.appendChild(div);
 }
 
+// ファイル名「カテゴリ｜トピック名.jpg」からトピックキーを割り出す。
+// 全角｜を区切りに使うのは、キーの区切りである半角 | がファイル名に使えない環境があるため。
+// 半角 | と全角｜のどちらでも受ける。
+function topicKeyFromFileName(name) {
+  const base = name.replace(/\.[^.]+$/, '').trim();
+  const key = base.replace(/｜/g, '|');
+  if (key.indexOf('|') === -1) return null;
+  return validTopicKeys().has(key) ? key : null;
+}
+let validTopicKeysCache = null;
+function validTopicKeys() {
+  if (!validTopicKeysCache) {
+    validTopicKeysCache = new Set(QUESTIONS.map(q => q.category + '|' + q.topic));
+  }
+  return validTopicKeysCache;
+}
+
 async function wireTopicImageBoard(topicKey) {
   const grid = document.getElementById('topicImgGrid');
   const input = document.getElementById('topicImgInput');
+  const bulk = document.getElementById('bulkImgInput');
+  const hero = document.getElementById('topicHero');
   if (!grid || !input) return;
 
   async function refresh() {
@@ -13776,6 +13824,15 @@ async function wireTopicImageBoard(topicKey) {
         refresh();
       };
     });
+    // 解説の冒頭に出す「主たる画像」は最初の1枚
+    if (hero) {
+      if (images.length) {
+        hero.innerHTML = '<img class="topic-hero-img" src="' + URL.createObjectURL(images[0].blob) + '" alt="">';
+        hero.querySelector('img').onclick = function () { openImageLightbox(this.src); };
+      } else {
+        hero.innerHTML = '';
+      }
+    }
   }
 
   input.onchange = async () => {
@@ -13785,6 +13842,28 @@ async function wireTopicImageBoard(topicKey) {
     input.value = '';
     refresh();
   };
+
+  if (bulk) {
+    bulk.onchange = async () => {
+      const files = Array.from(bulk.files || []).filter(f => f.type.startsWith('image/'));
+      let ok = 0; const skipped = [];
+      for (const f of files) {
+        const key = topicKeyFromFileName(f.name);
+        if (!key) { skipped.push(f.name); continue; }
+        await addTopicImage(key, f);
+        ok++;
+      }
+      bulk.value = '';
+      const box = document.getElementById('bulkImgResult');
+      if (box) {
+        box.innerHTML = '<div class="img-bulk-result">' + ok + '件を取り込みました。' +
+          (skipped.length ? '<br>トピック名が判別できず飛ばしたファイル（' + skipped.length + '件）：' +
+            skipped.slice(0, 5).join('、') + (skipped.length > 5 ? ' ほか' : '') : '') +
+          '</div>';
+      }
+      refresh();
+    };
+  }
 
   refresh();
 }
@@ -15208,6 +15287,7 @@ function renderTopicView() {
     const [category, topic] = currentTopicKey.split('|');
     const citeText = getFinalCiteText(category, topic);
     html += '<div class="memo-hide-zone" id="topicMemoZone"><div class="story-card">' +
+      renderTopicHero() +
       '<div class="story-eyebrow">' + category.replace('_','・') + '｜' + topic.replace('_','・') + '</div>' +
       '<div class="story-title">' + story.title + '</div>' +
       '<div class="story-body">' + unmaskPlainYears(story.body) + '</div>' +
@@ -15221,7 +15301,7 @@ function renderTopicView() {
     '</div>' +
     renderDiagram(category, topic) +
     renderAssetBoard(category, topic) +
-    // renderImageBoard() +  // 画像メモ機能はいったんオフ（2026-08-31、ユーザー指示）
+    renderImageBoard() +
     '</div>';
   } else if (crossTopicMode === 'bookmark') {
     const filterLabel = bookmarkFilter
@@ -15292,7 +15372,7 @@ function renderTopicView() {
       document.getElementById('quickMemoBox').style.display = 'none';
       alert('メモを保存しました。');
     };
-    // wireTopicImageBoard(currentTopicKey);  // 画像メモ機能はいったんオフ（2026-08-31、ユーザー指示）
+    wireTopicImageBoard(currentTopicKey);
   }
   renderQuizCard();
 }
