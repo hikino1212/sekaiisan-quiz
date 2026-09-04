@@ -1209,6 +1209,34 @@ body.mode-basic .roadmap-chev { color: #8A8270; }
 /* 畳んだときは下の余白を詰める */
 .roadmap-board.collapsed .roadmap-phase { margin-bottom: 0; }
 
+/* ===== トピック解説の出典（タイトル直下） =====
+   もとは解説の末尾にあったが、「どの紙面の話か」を読む前に知りたいので上へ移した。
+   ページの部分は押すとその紙面が開く（openPageFromBadge／設問カードのバッジと同じ仕組み）。 */
+.story-cite {
+  margin: 6px 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed #D8C89E;
+  font-size: 12px;
+  line-height: 2;
+  color: #8A8270;
+}
+.cite-page {
+  display: inline-block;
+  padding: 1px 7px;
+  margin: 0 1px;
+  border: 1px solid #D8CBA8;
+  border-radius: 100px;
+  background: #FBF7EC;
+  color: #7A6A4A;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cite-page:hover { background: #F3EAD3; border-color: #C9B77F; color: #9B3B2E; }
+body.mode-basic .cite-page { background: #F1F1EE; border-color: #DADAD4; color: #6A6A64; }
+
 </style>
 </head>
 <body>
@@ -17404,6 +17432,17 @@ function getSiteCitation(siteName) {
   return SITE_CITATIONS[siteName] || null;
 }
 
+// 出典の中の「[上]P166」「[中]P275-276」を、その紙面を開くボタンに変える。
+// 設問カードのページバッジと同じ仕組み（openPageFromBadge）に載せるので、
+// PDFが未登録なら押したときに登録を促すだけで、表示は壊れない。
+const CITE_PAGE_RE = /\[([上中下])\]P(\d+)(?:-(\d+))?/g;
+function linkifyCite(text) {
+  return text.replace(CITE_PAGE_RE, function (m) {
+    return '<button type="button" class="cite-page" data-page="' + m +
+           '" title="この紙面を開く">' + m + '</button>';
+  });
+}
+
 function getFinalCiteText(category, topic) {
   const key = category + '|' + topic;
   const sites = TOPIC_SITES[key];
@@ -19758,8 +19797,8 @@ function renderTopicView() {
       renderTopicHero() +
       '<div class="story-eyebrow">' + category.replace('_','・') + '｜' + topic.replace('_','・') + '</div>' +
       '<div class="story-title">' + story.title + '</div>' +
+      '<div class="story-cite">出典：' + linkifyCite(citeText) + '</div>' +
       '<div class="story-body">' + unmaskPlainYears(story.body) + '</div>' +
-      '<div style="margin-top:14px; padding-top:12px; border-top:1px dashed #D8CBA8; font-size:12px; color:#8A8270;">出典：' + citeText + '</div>' +
       '<div style="margin-top:10px;"><span class="backup-link" id="quickMemoLink">+ このトピックにメモ・画像を残す</span></div>' +
       '<div id="quickMemoBox" style="display:none; margin-top:8px;">' +
         '<textarea class="backup-textarea" id="quickMemoText" placeholder="気づいたこと・疑問点をメモ" style="height:60px;"></textarea>' +
@@ -19820,6 +19859,9 @@ function renderTopicView() {
       this.textContent = isHiding ? '👁' : '🖊';
       this.setAttribute('aria-label', isHiding ? '答えを見る' : '暗記モード');
     };
+    document.querySelectorAll('.cite-page[data-page]').forEach(btn => {
+      btn.onclick = () => openPageFromBadge(btn.getAttribute('data-page'));
+    });
     document.getElementById('quickMemoLink').onclick = () => {
       const box = document.getElementById('quickMemoBox');
       box.style.display = box.style.display === 'none' ? 'block' : 'none';
