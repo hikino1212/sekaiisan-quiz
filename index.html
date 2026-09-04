@@ -17906,7 +17906,13 @@ function topicKeyFromFileName(name) {
   const base = name.replace(/\.[^.]+$/, '').replace(/__[^_]*$/, '').trim();
   const key = base.replace(/｜/g, '|');
   if (key.indexOf('|') === -1) return null;
-  return validTopicKeys().has(key) ? key : null;
+  if (validTopicKeys().has(key)) return key;
+  // トピック名に「/」を含むもの（宗教・信仰関連遺産（キリスト教プロテスタント/国教会））は
+  // ファイル名に「/」が使えないため「・」に置き換えて保存されている。両方を受ける。
+  for (const k of validTopicKeys()) {
+    if (k.indexOf('/') !== -1 && k.replace(/\//g, '・') === key) return k;
+  }
+  return null;
 }
 let validTopicKeysCache = null;
 function validTopicKeys() {
