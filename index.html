@@ -409,6 +409,24 @@ body.mode-basic .topic-filter-btn.on { background: #F7F7F6; }
 /* 各問題がレベル1〜3のどれに当たるかを表示するバッジ。tierOf(q) の結果をそのまま出す。
    レベル1（赤字・基本層）ほど濃く、レベル3（応用層）ほど地味な色にして、
    一覧性より「濃さ＝基礎度」の直感を優先した。 */
+/* 設問1問ごとの「公式テキストの該当ページ」。レベルのバッジの隣に置く。
+   ②（PDFの該当ページを開く）を足すときは、このバッジをそのままボタンにする。 */
+.q-page-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border: 1px solid #D8CBA8;
+  border-radius: 100px;
+  background: #FBF7EC;
+  color: #7A6A4A;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+body.mode-basic .q-page-badge { background: #F1F1EE; border-color: #DADAD4; color: #6A6A64; }
+
 .q-level-badge {
   display: inline-block; margin-left: 8px; font-size: 10px; font-weight: 700;
   letter-spacing: 0; padding: 2px 7px; border-radius: 100px; vertical-align: 1px;
@@ -19768,6 +19786,28 @@ function sectionLookup(table, sec) {
   const i = sec.indexOf('／');
   return i === -1 ? undefined : table[sec.slice(0, i)];
 }
+// 設問1問ごとの「公式テキストの該当ページ」を返す（例 '[中]P268'）。無ければ null。
+//
+// 新しいデータは作らない。レベル判定に使っている既存の3つを引くだけで、
+// 全3,525問のうち約89%（3,123問）が特定できる。
+//   ・中巻/下巻 … SECTION_OF_QUESTION（問題文→節名）→ SECTION_TERMS[節].page
+//   ・上巻     … TEXTBOOK_TERMS[カテゴリ|トピック].page（1トピック＝1節なので範囲表記になる）
+//
+// ページが無いのが正しい設問もある——テーマ別_地域横断のドリル系（複数巻にまたがる独自整理）、
+// 時事・新規登録遺産（テキスト外）、佐渡島の金山・飛鳥・藤原の宮都（テキスト未収録）。
+// そこでは何も表示しない。
+function pageOfQuestion(q) {
+  if (typeof SECTION_TERMS !== 'undefined' && typeof SECTION_OF_QUESTION !== 'undefined') {
+    const d = sectionLookup(SECTION_TERMS, SECTION_OF_QUESTION[q.text]);
+    if (d && d.page) return d.page;
+  }
+  if (typeof TEXTBOOK_TERMS !== 'undefined') {
+    const t = TEXTBOOK_TERMS[q.category + '|' + q.topic];
+    if (t && t.page) return t.page;
+  }
+  return null;
+}
+
 function pageFloor(q) {
   if (WORLD_CATEGORIES.indexOf(q.category) === -1) return 0;
   if (typeof SITE_PAGES === 'undefined' || typeof SECTION_OF_QUESTION === 'undefined') return 0;
@@ -20059,10 +20099,14 @@ function renderQuizCard() {
   const eyebrowLabel = currentTopicKey ? '問題' : (currentQ.category.replace('_','・') + '｜' + currentQ.topic.replace('_','・'));
   const isBookmarked = progress.bookmarkedIds.includes(currentQ.id);
   const qTier = tierOf(currentQ);
+  const qPage = pageOfQuestion(currentQ);
+  const qPageBadge = qPage
+    ? '<span class="q-page-badge" title="公式テキストの該当ページ">' + qPage + '</span>'
+    : '';
   qArea.innerHTML =
     '<div class="card">' +
       '<div class="stamp" id="stampMark"><div class="stamp-inner">正</div></div>' +
-      '<div class="card-eyebrow"><span>' + eyebrowLabel + '<span class="q-level-badge lv' + qTier + '" title="' + LEVEL_LABELS[qTier] + '">Lv' + qTier + '</span></span>' +
+      '<div class="card-eyebrow"><span>' + eyebrowLabel + '<span class="q-level-badge lv' + qTier + '" title="' + LEVEL_LABELS[qTier] + '">Lv' + qTier + '</span>' + qPageBadge + '</span>' +
         '<span style="display:flex; align-items:center; gap:10px;">' +
           '<button class="bookmark-toggle' + (isBookmarked ? ' on' : '') + '" id="bookmarkBtn" title="ブックマーク">' + (isBookmarked ? '★' : '☆') + '</button>' +
           '<span class="qnum">' + (qIndex+1) + ' / ' + topicQueue.length + '</span>' +
