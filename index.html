@@ -1222,6 +1222,19 @@ button.q-page-badge:hover { background: #F3EAD3; border-color: #C9B77F; }
   background: #EDEBE4; border-radius: 100px; padding: 3px 10px; }
 .pdf-row-state.on { color: #2E6B4F; background: #E2F0E7; }
 
+/* 合格ロードマップの開閉。畳んでも残り日数とPhaseは見えるようにしてある */
+.roadmap-toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%; padding: 0; margin: 0 0 2px; cursor: pointer;
+  background: none; border: none; font-family: inherit; text-align: left;
+}
+.roadmap-toggle .story-eyebrow { margin: 0; }
+.roadmap-chev { font-size: 11px; color: #A8823C; flex: 0 0 auto; padding: 2px 6px; }
+.roadmap-toggle:hover .roadmap-chev { color: #9B3B2E; }
+body.mode-basic .roadmap-chev { color: #8A8270; }
+/* 畳んだときは下の余白を詰める */
+.roadmap-board.collapsed .roadmap-phase { margin-bottom: 0; }
+
 </style>
 </head>
 <body>
@@ -19305,12 +19318,17 @@ function renderRoadmapBoard() {
       '<div class="roadmap-trend">' + bars + '</div>';
   }
 
-  return '<div class="story-card roadmap-board">' +
-    '<div class="story-eyebrow">🗺 合格ロードマップ（第66回・目標160点）</div>' +
+  return '<div class="story-card roadmap-board' + (roadmapOpen ? '' : ' collapsed') + '">' +
+    '<button type="button" class="roadmap-toggle" id="roadmapToggle" ' +
+      'title="' + (roadmapOpen ? '閉じる' : '開く') + '" aria-expanded="' + roadmapOpen + '">' +
+      '<span class="story-eyebrow">🗺 合格ロードマップ（第66回・目標160点）</span>' +
+      '<span class="roadmap-chev">' + (roadmapOpen ? '▲' : '▼') + '</span>' +
+    '</button>' +
     '<div class="roadmap-head">' + head + '</div>' +
-    streakLine +
     '<div class="roadmap-phase"><span class="roadmap-phase-tag">' + phase.label + '</span>' +
       '<span class="roadmap-phase-focus">' + phase.focus + '</span></div>' +
+    (roadmapOpen ? (
+    streakLine +
     '<div class="roadmap-score">' + scoreLine + '</div>' +
     '<div class="roadmap-score-bar"><div class="roadmap-score-fill" style="width:' + scorePct + '%;"></div>' +
       '<div class="roadmap-score-goal" title="目標160点＝200点満点の80%"></div></div>' +
@@ -19323,7 +19341,8 @@ function renderRoadmapBoard() {
       '<span><i class="lg lg-low"></i>要強化</span>' +
       '<span><i class="lg lg-mid"></i>あと一歩</span>' +
       '<span><i class="lg lg-strong"></i>仕上がり</span>' +
-    '</div>' +
+    '</div>'
+    ) : '') +
   '</div>';
 }
 
@@ -19515,6 +19534,9 @@ function renderList() {
   html += '</div>';
 
   area.innerHTML = html;
+
+  const rmToggle = document.getElementById('roadmapToggle');
+  if (rmToggle) rmToggle.onclick = toggleRoadmap;
 
   document.querySelectorAll('.weak-grid .weak-cell').forEach(cell => {
     cell.onclick = () => openWeaknessDrill(cell.getAttribute('data-seg'));
@@ -19941,6 +19963,18 @@ function unmaskPlainYears(html) {
 //   レベル2 … 答えの一部がハイライト語。太字を足がかりに周辺知識を上乗せする「応用」層
 //   レベル3 … 答えにハイライト語が出てこない。解説の要約を超えて節を読み込む「徹底理解」層
 // レベルNを選ぶと「レベルN以下」が出題される（累積）ので、レベル3＝全問となる。
+// 合格ロードマップの開閉。ホーム最上部を占めるカードなので、日々の学習では
+// 畳んでおきたいという要望による。畳んでも「試験までの残り日数」と現在のPhaseだけは
+// 見えるようにしてある——ここが畳めると、そもそも何のためのカードか分からなくなるため。
+const ROADMAP_KEY = 'roadmap_open';
+let roadmapOpen = true;
+try { const v = localStorage.getItem(ROADMAP_KEY); if (v !== null) roadmapOpen = v === '1'; } catch (e) {}
+function toggleRoadmap() {
+  roadmapOpen = !roadmapOpen;
+  try { localStorage.setItem(ROADMAP_KEY, roadmapOpen ? '1' : '0'); } catch (e) {}
+  renderList();
+}
+
 const LEVEL_KEY = 'question_level';
 let questionLevel = 1;       // 1 | 2 | 3。初期値はレベル1
 let questionTierMap = null;  // 問題ID → 1/2/3（初回に構築）
