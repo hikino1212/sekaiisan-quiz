@@ -1175,8 +1175,17 @@ button.q-page-badge:hover { background: #F3EAD3; border-color: #C9B77F; }
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 14px; background: #232017; color: #F8F2E3; flex: 0 0 auto;
 }
-.pdf-title { font-size: 14px; font-weight: 700; letter-spacing: .03em; }
-.pdf-nav { display: flex; gap: 8px; }
+.pdf-title { font-size: 14px; font-weight: 700; letter-spacing: .03em; flex: 0 0 auto; }
+.pdf-nav { display: flex; gap: 8px; flex: 0 0 auto; }
+/* 操作のヒント。バーに入れるとスマホ幅で切れるので、下部に数秒だけ出して消す */
+.pdf-hint {
+  position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%);
+  max-width: calc(100% - 32px); white-space: nowrap; pointer-events: none;
+  background: rgba(24,22,18,.85); color: #E8DFC8; font-size: 11.5px;
+  padding: 7px 14px; border-radius: 100px; animation: pdfHintFade 4.5s ease forwards;
+}
+@keyframes pdfHintFade { 0%, 55% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .pdf-hint { animation: none; opacity: .9; } }
 .pdf-nav button {
   min-width: 40px; height: 34px; border-radius: 8px; cursor: pointer;
   border: 1px solid #5B5346; background: #33302A; color: #F8F2E3;
@@ -1184,7 +1193,8 @@ button.q-page-badge:hover { background: #F3EAD3; border-color: #C9B77F; }
 }
 .pdf-nav button:hover { background: #454037; }
 .pdf-body { flex: 1 1 auto; overflow: auto; display: flex; justify-content: center;
-  align-items: flex-start; padding: 12px; }
+  align-items: flex-start; padding: 12px; cursor: zoom-out; }
+.pdf-body canvas, .pdf-msg { cursor: auto; }
 .pdf-body canvas { background: #fff; border-radius: 4px; box-shadow: 0 6px 24px rgba(0,0,0,.4); display: none; }
 .pdf-msg { color: #F0E7D2; font-size: 14px; line-height: 1.8; max-width: 520px;
   background: rgba(0,0,0,.25); border-radius: 10px; padding: 16px 18px; margin-top: 40px; }
@@ -18137,16 +18147,17 @@ async function openTextbookPage(vol, from, to) {
       '</span>' +
     '</div>' +
     '<div class="pdf-body"><div class="pdf-msg" id="pdfMsg">読み込んでいます…</div>' +
-    '<canvas id="pdfCanvas"></canvas></div>';
+    '<canvas id="pdfCanvas"></canvas></div>' +
+    '<div class="pdf-hint">← スワイプでページ送り →　／　余白をタップで閉じる</div>';
   const old = document.getElementById('pdfView'); if (old) old.remove();
   document.body.appendChild(box);
   const close = () => box.remove();
   box.querySelector('#pdfClose').onclick = close;
-  box.onclick = e => { if (e.target === box) close(); };
 
   const msg = box.querySelector('#pdfMsg');
   const canvas = box.querySelector('#pdfCanvas');
-  let cur = from, doc = null;
+  const body = box.querySelector('.pdf-body');
+  let cur = from, doc = null, busy = false;
 
   const fail = t => { msg.textContent = t; msg.style.display = 'block'; canvas.style.display = 'none'; };
 
@@ -18161,23 +18172,69 @@ async function openTextbookPage(vol, from, to) {
     return;
   }
 
+  // 連打・連続スワイプで描画が重ならないよう、1枚ずつ処理する
   async function draw(paperPage) {
     const n = paperPage + PDF_PAGE_OFFSET;
-    if (n < 1 || n > doc.numPages) return;
-    cur = paperPage;
-    box.querySelector('#pdfPageNo').textContent = paperPage;
-    const page = await doc.getPage(n);
-    // 端末の横幅に合わせて等倍以上にならない範囲で拡大する
-    const base = page.getViewport({ scale: 1 });
-    const scale = Math.min(3, Math.max(1, (box.clientWidth - 24) / base.width * (window.devicePixelRatio || 1)));
-    const vp = page.getViewport({ scale });
-    canvas.width = vp.width; canvas.height = vp.height;
-    canvas.style.width = Math.min(box.clientWidth - 24, vp.width) + 'px';
-    msg.style.display = 'none'; canvas.style.display = 'block';
-    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+    if (busy || n < 1 || n > doc.numPages) return;
+    busy = true;
+    try {
+      cur = paperPage;
+      box.querySelector('#pdfPageNo').textContent = paperPage;
+      const page = await doc.getPage(n);
+      // 端末の横幅に合わせて等倍以上にならない範囲で拡大する
+      const base = page.getViewport({ scale: 1 });
+      const scale = Math.min(3, Math.max(1, (box.clientWidth - 24) / base.width * (window.devicePixelRatio || 1)));
+      const vp = page.getViewport({ scale });
+      canvas.width = vp.width; canvas.height = vp.height;
+      canvas.style.width = Math.min(box.clientWidth - 24, vp.width) + 'px';
+      msg.style.display = 'none'; canvas.style.display = 'block';
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+      body.scrollTop = 0;                       // めくったら紙面の先頭から読む
+    } finally { busy = false; }
   }
   box.querySelector('#pdfPrev').onclick = () => draw(cur - 1);
   box.querySelector('#pdfNext').onclick = () => draw(cur + 1);
+
+  // 紙面以外（余白）を触ったら閉じる。
+  // ⚠ オーバーレイ自身（.pdf-view）へのクリックでは判定できない——.pdf-body が
+  //    全面を覆っているので e.target がそちらになる。余白の判定は .pdf-body 側で行う。
+  let dragged = false;
+  body.addEventListener('click', e => {
+    if (dragged) { dragged = false; return; }   // スワイプ・スクロールの直後は閉じない
+    if (e.target !== canvas) close();
+  });
+
+  // 左右のスワイプでページ送り。
+  // ⚠ touchmove で preventDefault してはいけない——縦スクロールとピンチ拡大が死ぬ。
+  //    紙面は横幅に収めて描いているので横スクロールは元々無く、横方向は奪って構わない。
+  let sx = 0, sy = 0, tracking = false;
+  body.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) { tracking = false; return; }   // ピンチは対象外
+    tracking = true; dragged = false;
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+  }, { passive: true });
+  body.addEventListener('touchmove', e => {
+    if (!tracking || e.touches.length !== 1) { tracking = false; return; }
+    if (Math.abs(e.touches[0].clientX - sx) > 10 || Math.abs(e.touches[0].clientY - sy) > 10) dragged = true;
+  }, { passive: true });
+  body.addEventListener('touchend', e => {
+    if (!tracking) return;
+    tracking = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - sx, dy = t.clientY - sy;
+    // 縦に振れているものは（スクロールなので）ページ送りにしない
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) draw(dx < 0 ? cur + 1 : cur - 1);
+  }, { passive: true });
+
+  // PCでも左右キーでめくれる（オーバーレイを閉じるまで有効）
+  const onKey = e => {
+    if (!document.getElementById('pdfView')) { document.removeEventListener('keydown', onKey); return; }
+    if (e.key === 'ArrowLeft') draw(cur - 1);
+    else if (e.key === 'ArrowRight') draw(cur + 1);
+    else if (e.key === 'Escape') close();
+  };
+  document.addEventListener('keydown', onKey);
+
   await draw(from);
 }
 
