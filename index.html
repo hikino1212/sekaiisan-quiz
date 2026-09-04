@@ -1187,6 +1187,41 @@ body.mode-basic .img-board { border-top-color: #D6D6D2; }
 button.img-add-btn { font-family: inherit; background: transparent; }
 button.img-add-btn:disabled { opacity: 0.5; cursor: default; }
 
+/* ===== 公式テキストPDFの表示（openTextbookPage / renderPdfLibraryCard） ===== */
+/* ページバッジはボタンなので、押せることが分かる見た目にする */
+button.q-page-badge { cursor: pointer; font-family: inherit; }
+button.q-page-badge:hover { background: #F3EAD3; border-color: #C9B77F; }
+
+.pdf-view {
+  position: fixed; inset: 0; z-index: 3000;
+  background: rgba(24,22,18,.88);
+  display: flex; flex-direction: column;
+}
+.pdf-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; background: #232017; color: #F8F2E3; flex: 0 0 auto;
+}
+.pdf-title { font-size: 14px; font-weight: 700; letter-spacing: .03em; }
+.pdf-nav { display: flex; gap: 8px; }
+.pdf-nav button {
+  min-width: 40px; height: 34px; border-radius: 8px; cursor: pointer;
+  border: 1px solid #5B5346; background: #33302A; color: #F8F2E3;
+  font-size: 17px; line-height: 1; font-family: inherit;
+}
+.pdf-nav button:hover { background: #454037; }
+.pdf-body { flex: 1 1 auto; overflow: auto; display: flex; justify-content: center;
+  align-items: flex-start; padding: 12px; }
+.pdf-body canvas { background: #fff; border-radius: 4px; box-shadow: 0 6px 24px rgba(0,0,0,.4); display: none; }
+.pdf-msg { color: #F0E7D2; font-size: 14px; line-height: 1.8; max-width: 520px;
+  background: rgba(0,0,0,.25); border-radius: 10px; padding: 16px 18px; margin-top: 40px; }
+
+.pdf-rows { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.pdf-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pdf-row-label { font-size: 13px; color: #5B5346; flex: 1 1 auto; }
+.pdf-row-state { font-size: 11px; font-weight: 700; color: #8A8270;
+  background: #EDEBE4; border-radius: 100px; padding: 3px 10px; }
+.pdf-row-state.on { color: #2E6B4F; background: #E2F0E7; }
+
 </style>
 </head>
 <body>
@@ -17915,6 +17950,238 @@ function openImageLightbox(src) {
   document.body.appendChild(div);
 }
 
+// ============ 公式テキストPDFの該当ページを開く ============
+//
+// 設問カードのページバッジ（[中]P275-276）を押すと、その紙面をアプリ内に描画する。
+//
+// ⚠ **PDFはこのアプリに一切含めない。** 画像メモとまったく同じ方針で、著作物は利用者が
+//    自分の端末で選んだファイルだけを、その場で読む。gitにもビルドにもDriveにも入らない。
+//
+// ⚠ **https のページから file:// のPDFは開けない。** ブラウザが仕様で禁止しており、
+//    リンクを踏んでも無反応になる。Google DriveのプレビューもURLでのページ指定に
+//    対応していない。だから「アプリ内でPDF.jsが描画する」以外に方法がない。
+//
+// 端末による違い：
+//   PC（Chrome/Edge）… File System Access API でファイルの参照をIndexedDBに保存できるので、
+//                      一度選べば次回以降も選び直さずに開ける。
+//   iPhone/Safari    … 同APIが無いので、そのセッションの間だけ憶える（毎回選び直し）。
+// どちらでもPDFを丸ごと保存はしない——174MBを抱えずに、必要なページだけを読む。
+
+const PDF_DB_NAME = 'sekaiisan_textbook_pdf';
+const PDF_STORE = 'handles';
+const PDF_VOLUMES = [
+  { key: '上', label: '上巻（基礎知識・日本）' },
+  { key: '中', label: '中巻（アジア・アフリカ・アメリカ）' },
+  { key: '下', label: '下巻（ヨーロッパ・オセアニア）' },
+];
+// ⚠ 紙面のページ番号とPDFのページ番号はずれる。表紙と扉のぶん、
+//    PDF（1基準）= 本文ページ + 2。上・中・下の3巻すべてで実測して一致を確認済み。
+const PDF_PAGE_OFFSET = 2;
+
+let pdfjsLibCache = null;          // 読み込んだPDF.js
+let sessionPdfFiles = {};          // File System Access API が無い端末用（このセッションのみ）
+
+function pdfDbOpen() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(PDF_DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(PDF_STORE)) db.createObjectStore(PDF_STORE, { keyPath: 'vol' });
+    };
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+async function pdfSaveHandle(vol, handle) {
+  const db = await pdfDbOpen();
+  db.transaction(PDF_STORE, 'readwrite').objectStore(PDF_STORE).put({ vol, handle });
+}
+async function pdfGetHandle(vol) {
+  const db = await pdfDbOpen();
+  return new Promise(res => {
+    const req = db.transaction(PDF_STORE, 'readonly').objectStore(PDF_STORE).get(vol);
+    req.onsuccess = () => res(req.result ? req.result.handle : null);
+    req.onerror = () => res(null);
+  });
+}
+async function pdfClear(vol) {
+  const db = await pdfDbOpen();
+  db.transaction(PDF_STORE, 'readwrite').objectStore(PDF_STORE).delete(vol);
+  delete sessionPdfFiles[vol];
+}
+
+// PDF.js は使うときだけ読み込む。まず同じ場所に置いたファイル（GitHub Pages版）、
+// 無ければCDNを試す。どちらも失敗したらページ番号の表示だけに戻る（①へのフォールバック）。
+const PDFJS_VER = '4.6.82';
+async function ensurePdfjs() {
+  if (pdfjsLibCache) return pdfjsLibCache;
+  const sources = [
+    { lib: new URL('./pdf.min.mjs', location.href).href,
+      worker: new URL('./pdf.worker.min.mjs', location.href).href },
+    { lib: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/' + PDFJS_VER + '/pdf.min.mjs',
+      worker: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/' + PDFJS_VER + '/pdf.worker.min.mjs' },
+  ];
+  let lastErr = null;
+  for (const s of sources) {
+    try {
+      const lib = await import(s.lib);
+      lib.GlobalWorkerOptions.workerSrc = s.worker;
+      pdfjsLibCache = lib;
+      return lib;
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr || new Error('PDF.jsを読み込めませんでした');
+}
+
+// その巻のPDFを読める状態にして File を返す。無ければ null。
+async function pdfFileFor(vol, { ask = false } = {}) {
+  if (sessionPdfFiles[vol]) return sessionPdfFiles[vol];
+  const handle = await pdfGetHandle(vol);
+  if (handle) {
+    try {
+      let perm = await handle.queryPermission({ mode: 'read' });
+      if (perm !== 'granted' && ask) perm = await handle.requestPermission({ mode: 'read' });
+      if (perm === 'granted') {
+        const f = await handle.getFile();
+        sessionPdfFiles[vol] = f;
+        return f;
+      }
+    } catch (e) { /* 参照が古い・ファイルが移動した等。登録し直してもらう */ }
+  }
+  return null;
+}
+
+// 巻を登録する。PCならファイルの参照を保存し、そうでなければセッション内だけ憶える。
+async function pdfRegister(vol) {
+  if (window.showOpenFilePicker) {
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: 'PDF', accept: { 'application/pdf': ['.pdf'] } }],
+      });
+      await pdfSaveHandle(vol, handle);
+      sessionPdfFiles[vol] = await handle.getFile();
+      return true;
+    } catch (e) { return false; }          // 利用者が取り消した
+  }
+  return new Promise(res => {
+    const input = document.createElement('input');
+    input.type = 'file'; input.accept = 'application/pdf,.pdf';
+    input.onchange = () => {
+      if (input.files && input.files[0]) { sessionPdfFiles[vol] = input.files[0]; res(true); }
+      else res(false);
+    };
+    input.click();
+  });
+}
+
+// 紙面を描画する。範囲（P275-276）なら前後めくりも出す。
+async function openTextbookPage(vol, from, to) {
+  const box = document.createElement('div');
+  box.className = 'pdf-view';
+  box.id = 'pdfView';
+  box.innerHTML =
+    '<div class="pdf-bar">' +
+      '<span class="pdf-title">[' + vol + ']P<span id="pdfPageNo">' + from + '</span></span>' +
+      '<span class="pdf-nav">' +
+        '<button type="button" id="pdfPrev" title="前のページ">‹</button>' +
+        '<button type="button" id="pdfNext" title="次のページ">›</button>' +
+        '<button type="button" id="pdfClose" title="閉じる">✕</button>' +
+      '</span>' +
+    '</div>' +
+    '<div class="pdf-body"><div class="pdf-msg" id="pdfMsg">読み込んでいます…</div>' +
+    '<canvas id="pdfCanvas"></canvas></div>';
+  const old = document.getElementById('pdfView'); if (old) old.remove();
+  document.body.appendChild(box);
+  const close = () => box.remove();
+  box.querySelector('#pdfClose').onclick = close;
+  box.onclick = e => { if (e.target === box) close(); };
+
+  const msg = box.querySelector('#pdfMsg');
+  const canvas = box.querySelector('#pdfCanvas');
+  let cur = from, doc = null;
+
+  const fail = t => { msg.textContent = t; msg.style.display = 'block'; canvas.style.display = 'none'; };
+
+  try {
+    const file = await pdfFileFor(vol, { ask: true });
+    if (!file) {
+      fail('この巻のPDFがまだ登録されていません。Memo画面の「📕 公式テキストPDF」から選んでください。');
+      return;
+    }
+    const lib = await ensurePdfjs();
+    doc = await lib.getDocument({ data: await file.arrayBuffer() }).promise;
+  } catch (e) {
+    fail('PDFを開けませんでした（' + (e && e.message ? e.message : e) + '）。ページ番号は [' + vol + ']P' + from + ' です。');
+    return;
+  }
+
+  async function draw(paperPage) {
+    const n = paperPage + PDF_PAGE_OFFSET;
+    if (n < 1 || n > doc.numPages) return;
+    cur = paperPage;
+    box.querySelector('#pdfPageNo').textContent = paperPage;
+    const page = await doc.getPage(n);
+    // 端末の横幅に合わせて等倍以上にならない範囲で拡大する
+    const base = page.getViewport({ scale: 1 });
+    const scale = Math.min(3, Math.max(1, (box.clientWidth - 24) / base.width * (window.devicePixelRatio || 1)));
+    const vp = page.getViewport({ scale });
+    canvas.width = vp.width; canvas.height = vp.height;
+    canvas.style.width = Math.min(box.clientWidth - 24, vp.width) + 'px';
+    msg.style.display = 'none'; canvas.style.display = 'block';
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+  }
+  box.querySelector('#pdfPrev').onclick = () => draw(cur - 1);
+  box.querySelector('#pdfNext').onclick = () => draw(cur + 1);
+  await draw(from);
+}
+
+// 設問カードのページバッジから呼ぶ。'[中]P275-276' を解いて開く。
+function openPageFromBadge(pageStr) {
+  const m = /^\[([上中下])\]P(\d+)(?:-(\d+))?$/.exec(pageStr);
+  if (!m) return;
+  openTextbookPage(m[1], +m[2], m[3] ? +m[3] : +m[2]);
+}
+
+// メモ画面に置く、PDFの登録カード。
+function renderPdfLibraryCard() {
+  const rows = PDF_VOLUMES.map(v =>
+    '<div class="pdf-row">' +
+      '<span class="pdf-row-label">' + v.label + '</span>' +
+      '<span class="pdf-row-state" id="pdfState-' + v.key + '">確認中…</span>' +
+      '<button class="img-add-btn" type="button" data-pdfvol="' + v.key + '">選ぶ</button>' +
+    '</div>').join('');
+  return '<div class="story-card" style="margin-bottom:14px;">' +
+    '<div class="story-title" style="font-size:18px;">📕 公式テキストPDF</div>' +
+    '<div class="story-body" style="font-size:13px;">登録すると、設問のページバッジ（例 [中]P275）を押したときにその紙面を開きます。' +
+    'PDFはこの端末の中だけで読み、アプリにもDriveにも保存しません。</div>' +
+    '<div class="pdf-rows">' + rows + '</div>' +
+    '<div class="img-bulk-note" id="pdfLibNote"></div>' +
+    '</div>';
+}
+
+async function wirePdfLibraryCard() {
+  const persistent = !!window.showOpenFilePicker;
+  const note = document.getElementById('pdfLibNote');
+  if (note) {
+    note.innerHTML = persistent
+      ? 'この端末では選んだPDFを憶えておけるので、次に開くときは選び直しになりません。'
+      : 'この端末（iPhoneなど）はファイルを憶えておく仕組みが使えないため、アプリを開き直すたびに選び直しになります。';
+  }
+  for (const v of PDF_VOLUMES) {
+    const el = document.getElementById('pdfState-' + v.key);
+    if (!el) continue;
+    const ready = sessionPdfFiles[v.key] || (persistent && await pdfGetHandle(v.key));
+    el.textContent = ready ? '登録済み' : '未登録';
+    el.className = 'pdf-row-state' + (ready ? ' on' : '');
+  }
+  document.querySelectorAll('[data-pdfvol]').forEach(btn => {
+    btn.onclick = async () => {
+      const vol = btn.getAttribute('data-pdfvol');
+      if (await pdfRegister(vol)) wirePdfLibraryCard();
+    };
+  });
+}
+
 // ファイル名「カテゴリ｜トピック名.jpg」からトピックキーを割り出す。
 // 全角｜を区切りに使うのは、キーの区切りである半角 | がファイル名に使えない環境があるため。
 // 半角 | と全角｜のどちらでも受ける。
@@ -20101,7 +20368,8 @@ function renderQuizCard() {
   const qTier = tierOf(currentQ);
   const qPage = pageOfQuestion(currentQ);
   const qPageBadge = qPage
-    ? '<span class="q-page-badge" title="公式テキストの該当ページ">' + qPage + '</span>'
+    ? '<button type="button" class="q-page-badge" data-page="' + qPage +
+      '" title="公式テキストの該当ページを開く">' + qPage + '</button>'
     : '';
   qArea.innerHTML =
     '<div class="card">' +
@@ -20140,6 +20408,8 @@ function renderQuizCard() {
   document.getElementById('correctBtn').onclick = () => gradeAnswer(true);
   document.getElementById('wrongBtn').onclick = () => gradeAnswer(false);
   document.getElementById('skipBtn').onclick = () => { qIndex++; renderQuizCard(); };
+  const pageBadgeBtn = qArea.querySelector('.q-page-badge[data-page]');
+  if (pageBadgeBtn) pageBadgeBtn.onclick = () => openPageFromBadge(pageBadgeBtn.getAttribute('data-page'));
   document.getElementById('bookmarkBtn').onclick = () => toggleBookmark(currentQ.id);
 }
 
@@ -20975,6 +21245,7 @@ function renderMemosView() {
   html += '</div>';
 
   html += renderImageLibraryCard();
+  html += renderPdfLibraryCard();
 
   html += '<div id="memoListArea">';
   if (memos.length === 0) {
@@ -20997,6 +21268,7 @@ function renderMemosView() {
 
   area.innerHTML = html;
   wireImageLibrary();
+  wirePdfLibraryCard();
 
   document.getElementById('memoBackLink').onclick = () => {
     view = 'list';
