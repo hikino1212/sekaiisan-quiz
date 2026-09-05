@@ -1186,6 +1186,10 @@ button.q-page-badge:hover { background: #F3EAD3; border-color: #C9B77F; }
 }
 @keyframes pdfHintFade { 0%, 55% { opacity: 1; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .pdf-hint { animation: none; opacity: .9; } }
+/* ハイライトが出せない理由の注記。紙面に重ねると本文にかぶるのでバーの直下に敷く */
+.pdf-hl-note { flex: 0 0 auto; background: #2E2A20; color: #E0D6BE; font-size: 11px;
+  line-height: 1.6; padding: 7px 14px; text-align: center; }
+.pdf-hl-note:empty { display: none; }
 .pdf-nav button {
   min-width: 40px; height: 34px; border-radius: 8px; cursor: pointer;
   border: 1px solid #5B5346; background: #33302A; color: #F8F2E3;
@@ -18132,6 +18136,114 @@ async function pdfDocFor(vol) {
   return doc;
 }
 
+// その紙面（本文ページ番号）に関係する強調語を集める。
+// 新しいデータは作らない——レベル判定に使っている SECTION_TERMS / TEXTBOOK_TERMS の
+// page 範囲と突き合わせるだけ。設問から辿るのではなくページから引くので、
+// 設問カードのバッジからでも解説の出典からでも、ページを送っても同じように効く。
+function pageRangeOf(pageStr) {
+  const m = /^\[([上中下])\]P(\d+)(?:-(\d+))?$/.exec(pageStr || '');
+  return m ? { vol: m[1], a: +m[2], b: +(m[3] || m[2]) } : null;
+}
+function termsForPage(vol, paper) {
+  const red = new Set(), black = new Set();
+  const take = t => {
+    const r = pageRangeOf(t.page);
+    if (!r || r.vol !== vol || paper < r.a || paper > r.b) return;
+    (t.red || []).forEach(w => red.add(w));
+    (t.black || []).forEach(w => black.add(w));
+  };
+  if (typeof SECTION_TERMS !== 'undefined') Object.values(SECTION_TERMS).forEach(take);
+  if (typeof TEXTBOOK_TERMS !== 'undefined') Object.values(TEXTBOOK_TERMS).forEach(take);
+  return { red: [...red], black: [...black] };
+}
+
+// 紙面の上に黄色いハイライトを塗る。
+// ⚠ 公式テキストPDFのテキスト層はOCR（GlyphLessFont）で、誤読がある。
+//    実測で強調語1,169語のうち完全一致は76%（中巻82%・下巻71%）。
+//    見つからない語は塗られないだけで、紙面の表示自体には影響しない。
+// ⚠ テキスト層を持たないPDFでは何も塗らない。軽量版をページごと描き直して
+//    作ると層が消えるので、画像だけを差し替える作り方にすること。
+const KATAKANA_RE = /[ァ-ヴー]/;
+function drawPageHighlights(ctx, textContent, vp, terms, lib) {
+  // items を連結し、「連結後の文字位置 → どの item の何文字目か」を持つ
+  let s = ''; const map = [];
+  for (let i = 0; i < textContent.items.length; i++) {
+    const it = textContent.items[i];
+    if (typeof it.str !== 'string') continue;
+    for (let k = 0; k < it.str.length; k++) map.push({ i: i, k: k });
+    s += it.str;
+  }
+  if (!s) return 0;
+  let painted = 0;
+
+  // 語がその位置にあるとして、またがる item ごとに塗る
+  const paintAt = (idx, len) => {
+    const seen = {};
+    for (let p = idx; p < idx + len; p++) {
+      const cell = map[p]; if (!cell || seen[cell.i]) continue;
+      seen[cell.i] = 1;
+      const it = textContent.items[cell.i];
+      const m = lib.Util.transform(vp.transform, it.transform);
+      const h = Math.hypot(m[2], m[3]);
+      const w = (it.width || 0) * vp.scale;
+      if (!(w > 0) || !(h > 0)) continue;
+      const st = p - cell.k;                       // 連結文字列上での item の先頭
+      const a = Math.max(0, idx - st);
+      const b = Math.min(it.str.length, idx + len - st);
+      const per = w / it.str.length;
+      ctx.fillRect(m[4] + per * a, m[5] - h, per * (b - a), h * 1.12);
+      painted++;
+    }
+  };
+
+  // ⚠ 部分一致で長い語の途中を塗らない。
+  //    「アルタクセルクセス1世」の中の「クセルクセス1世」が実際に塗られた。
+  const okBoundary = (term, idx) => {
+    const before = idx > 0 ? s[idx - 1] : '';
+    const after = s[idx + term.length] || '';
+    if (KATAKANA_RE.test(term[0]) && KATAKANA_RE.test(before)) return false;
+    if (KATAKANA_RE.test(term[term.length - 1]) && KATAKANA_RE.test(after)) return false;
+    return true;
+  };
+
+  // ⚠ OCRは1〜2文字を読み違える（実測：匈奴→甸奴／兵馬俑→兵馬桶／ィ→イ／ピ→ビ）。
+  //    完全一致だけだと強調語1,169語のうち76%しか当たらない。
+  //    ただし**ゆるい一致を常時使うと誤爆が1,000箇所増える**ので、
+  //    完全一致が1つも無かった語に限り、最も似た1箇所だけを塗る（実測94%・誤爆は増えない）。
+  const FUZZY_MIN_LEN = 4, FUZZY_THRESHOLD = 0.8;
+  const bestFuzzy = term => {
+    const n = term.length, need = n * FUZZY_THRESHOLD;
+    let bi = -1, bs = 0;
+    for (let i = 0; i + n <= s.length; i++) {
+      let c = 0;
+      for (let k = 0; k < n; k++) if (s[i + k] === term[k]) c++;
+      if (c > bs) { bs = c; bi = i; }
+    }
+    return bs >= need ? bi : -1;
+  };
+
+  const paint = (list, fill) => {
+    ctx.fillStyle = fill;
+    for (const term of list) {
+      if (!term || term.length < 2) continue;
+      let from = 0, idx, n = 0;
+      while ((idx = s.indexOf(term, from)) !== -1) {
+        from = idx + 1;
+        if (!okBoundary(term, idx)) continue;
+        paintAt(idx, term.length); n++;
+      }
+      if (n === 0 && term.length >= FUZZY_MIN_LEN) {
+        const i = bestFuzzy(term);
+        if (i >= 0) paintAt(i, term.length);
+      }
+    }
+  };
+  // 黒太字を先に、赤字を後に塗る（重なったら赤字の色が残る）
+  paint(terms.black, 'rgba(255,246,150,.46)');
+  paint(terms.red,   'rgba(255,213,0,.46)');
+  return painted;
+}
+
 // 紙面を描画する。範囲（P275-276）なら前後めくりも出す。
 async function openTextbookPage(vol, from, to) {
   const box = document.createElement('div');
@@ -18146,6 +18258,7 @@ async function openTextbookPage(vol, from, to) {
         '<button type="button" id="pdfClose" title="閉じる">✕</button>' +
       '</span>' +
     '</div>' +
+    '<div class="pdf-hl-note"></div>' +
     '<div class="pdf-body"><div class="pdf-msg" id="pdfMsg">読み込んでいます…</div>' +
     '<canvas id="pdfCanvas"></canvas></div>' +
     '<div class="pdf-hint">← スワイプでページ送り →　／　余白をタップで閉じる</div>';
@@ -18188,7 +18301,19 @@ async function openTextbookPage(vol, from, to) {
       canvas.width = vp.width; canvas.height = vp.height;
       canvas.style.width = Math.min(box.clientWidth - 24, vp.width) + 'px';
       msg.style.display = 'none'; canvas.style.display = 'block';
-      await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+      const ctx = canvas.getContext('2d');
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      // 強調語のハイライト。テキスト層が無いPDFでは黙って何もしない
+      try {
+        const terms = termsForPage(vol, paperPage);
+        if (terms.red.length || terms.black.length) {
+          const tc = await page.getTextContent();
+          const n2 = drawPageHighlights(ctx, tc, vp, terms, await ensurePdfjs());
+          const hint = box.querySelector('.pdf-hl-note');
+          if (hint) hint.textContent = tc.items.length ? '' :
+            'このPDFは文字情報を持たないため、強調語のハイライトは出ません（tools/軽量版PDFを作る.py で作り直すと出ます）';
+        }
+      } catch (e) { /* ハイライトは付加機能。失敗しても紙面は出す */ }
       body.scrollTop = 0;                       // めくったら紙面の先頭から読む
     } finally { busy = false; }
   }
