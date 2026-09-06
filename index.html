@@ -18045,6 +18045,17 @@ async function ensurePdfjs() {
   throw lastErr || new Error('PDF.jsを読み込めませんでした');
 }
 
+// ⚠ `showOpenFilePicker` は「存在するのに使えない」ことがある。
+//    claude.ai の Artifact はページを iframe に入れて配信するため、呼ぶと
+//    SecurityError（Cross origin sub frames aren't allowed to show a file picker /
+//    Sandboxed documents aren't allowed to show a file picker）になる。
+//    存在チェックだけで分岐すると例外を握りつぶし、**押しても無反応**になる（実際になった）。
+//    最上位の文書で開かれているときだけ使い、そうでなければ <input type=file> に落とす。
+function canUseFilePicker() {
+  if (!window.showOpenFilePicker) return false;
+  try { return window.self === window.top; } catch (e) { return false; }
+}
+
 // その巻のPDFを読める状態にして File を返す。無ければ null。
 // 参照（PC）→ 写し（iPhone）の順に見る。
 async function pdfFileFor(vol, { ask = false } = {}) {
@@ -18077,7 +18088,7 @@ async function pdfFileFor(vol, { ask = false } = {}) {
 // 戻り値 { ok, stored, error } … ok=選ばれた／stored=次回以降も憶えている
 async function pdfRegister(vol, onStatus) {
   let file = null;
-  if (window.showOpenFilePicker) {
+  if (canUseFilePicker()) {
     try {
       const [handle] = await window.showOpenFilePicker({
         types: [{ description: 'PDF', accept: { 'application/pdf': ['.pdf'] } }],
@@ -18086,7 +18097,10 @@ async function pdfRegister(vol, onStatus) {
       sessionPdfFiles[vol] = await handle.getFile();
       delete pdfDocCache[vol];
       return { ok: true, stored: true };
-    } catch (e) { return { ok: false, stored: false }; }   // 利用者が取り消した
+    } catch (e) {
+      if (e && e.name === 'AbortError') return { ok: false, cancelled: true };
+      // 使えなかった（iframe内など）。黙って諦めず、ファイル選択へ落とす
+    }
   }
   file = await new Promise(res => {
     const input = document.createElement('input');
@@ -18094,7 +18108,7 @@ async function pdfRegister(vol, onStatus) {
     input.onchange = () => res(input.files && input.files[0] ? input.files[0] : null);
     input.click();
   });
-  if (!file) return { ok: false, stored: false };
+  if (!file) return { ok: false, cancelled: true };
   sessionPdfFiles[vol] = file;
   delete pdfDocCache[vol];
   try {
@@ -18396,7 +18410,7 @@ function renderPdfLibraryCard() {
 }
 
 async function wirePdfLibraryCard() {
-  const byRef = !!window.showOpenFilePicker;   // 参照だけ保存できる端末か
+  const byRef = canUseFilePicker();            // 参照だけ保存できるか（iframe内は不可）
   const note = document.getElementById('pdfLibNote');
   let usage = '';
   if (!byRef && navigator.storage && navigator.storage.estimate) {
@@ -18408,7 +18422,7 @@ async function wirePdfLibraryCard() {
   if (note) {
     note.innerHTML = byRef
       ? 'この端末では選んだPDFの<b>場所</b>を憶えるので、次に開くときは選び直しになりません（PDF自体はコピーしません）。'
-      : 'この端末（iPhoneなど）はファイルの場所を憶えておけないため、選んだPDFの<b>写し</b>をブラウザの中に保存します。' +
+      : 'この画面ではファイルの場所を憶えておけないため（iPhone、および claude.ai の Artifact）、選んだPDFの<b>写し</b>をブラウザの中に保存します。' +
         '一度選べば、次に開いたときは選び直しになりません。写しはこの端末の中だけにあり、gitにもDriveにも送りません。<br>' +
         '⚠ 3巻ぶんで250MB前後になります。容量が足りないときは軽量版のPDFを使うか、使わない巻を「削除」してください。' +
         (usage ? '<br>' + usage : '');
@@ -18430,8 +18444,18 @@ async function wirePdfLibraryCard() {
     btn.onclick = async () => {
       const vol = btn.getAttribute('data-pdfvol');
       const el = document.getElementById('pdfState-' + vol);
-      const r = await pdfRegister(vol, t => { if (el) el.textContent = t; });
-      if (!r.ok) { wirePdfLibraryCard(); return; }
+      let r;
+      try { r = await pdfRegister(vol, t => { if (el) el.textContent = t; }); }
+      catch (e) { r = { ok: false, error: e }; }
+      if (!r.ok) {
+        await wirePdfLibraryCard();
+        // 取り消しは黙って戻る。それ以外は理由を出す（無反応にしない）
+        if (!r.cancelled && note) {
+          note.textContent = 'PDFを選べませんでした（' +
+            (r.error && r.error.message ? r.error.message : '原因不明') + '）。';
+        }
+        return;
+      }
       await wirePdfLibraryCard();
       if (!r.stored && note) {
         note.innerHTML = '⚠ この端末に保存できませんでした（容量不足の可能性があります）。' +
