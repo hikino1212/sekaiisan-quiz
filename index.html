@@ -1200,11 +1200,18 @@ button.q-page-badge:hover { background: #F3EAD3; border-color: #C9B77F; }
    1枚を描き替える作りだとページが瞬間的に入れ替わるだけで、めくる感触が出ない */
 .pdf-body { flex: 1 1 auto; overflow: hidden; position: relative; }
 .pdf-track { display: flex; height: 100%; will-change: transform; }
+/* ⚠ display:flex + justify-content:center にしない。拡大して紙面が枠より広くなったとき、
+   はみ出した左側にスクロールで到達できなくなる（flexの既知の挙動）。
+   ブロック＋text-align:center なら拡大時も左右に見回せる */
 .pdf-slide { flex: 0 0 100%; height: 100%; box-sizing: border-box; padding: 12px;
-  overflow-y: auto; overflow-x: hidden; cursor: zoom-out;
-  display: flex; justify-content: center; align-items: flex-start; }
-.pdf-slide canvas { background: #fff; border-radius: 4px; cursor: auto;
-  box-shadow: 0 6px 24px rgba(0,0,0,.4); }
+  position: relative; overflow: auto; -webkit-overflow-scrolling: touch;
+  text-align: center; cursor: zoom-out; }
+.pdf-slide canvas { display: inline-block; background: #fff; border-radius: 4px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.4); cursor: zoom-in;
+  /* ⚠ manipulation はピンチ拡大を残したままダブルタップ拡大だけを止める。
+     none や pan-y にするとピンチが死ぬ */
+  touch-action: manipulation; }
+.pdf-slide.zoomed canvas { cursor: zoom-out; }
 .pdf-msg { position: absolute; left: 50%; top: 40px; transform: translateX(-50%);
   color: #F0E7D2; font-size: 14px; line-height: 1.8; max-width: 520px; cursor: auto;
   background: rgba(0,0,0,.25); border-radius: 10px; padding: 16px 18px; }
@@ -17975,6 +17982,10 @@ const PDF_VOLUMES = [
 // ⚠ 紙面のページ番号とPDFのページ番号はずれる。表紙と扉のぶん、
 //    PDF（1基準）= 本文ページ + 2。上・中・下の3巻すべてで実測して一致を確認済み。
 const PDF_PAGE_OFFSET = 2;
+// ダブルタップの拡大率と、1枚のcanvasに許すビットマップ幅の上限。
+// 上限を置かないと拡大時に1枚で数十MBになり、iPhoneでcanvasを確保できず真っ白になる。
+const PDF_ZOOM = 2.2;
+const PDF_MAX_BITMAP_W = 1800;
 
 let pdfjsLibCache = null;          // 読み込んだPDF.js
 let sessionPdfFiles = {};          // 巻 → File（この表示中だけのキャッシュ）
@@ -18292,7 +18303,7 @@ async function openTextbookPage(vol, from, to) {
         '<div class="pdf-slide"><canvas></canvas></div>' +
       '</div>' +
     '</div>' +
-    '<div class="pdf-hint">← スワイプでめくる →　／　余白をタップで閉じる</div>';
+    '<div class="pdf-hint">← スワイプでめくる →　／　ダブルタップで拡大　／　余白をタップで閉じる</div>';
   const old = document.getElementById('pdfView'); if (old) old.remove();
   document.body.appendChild(box);
   const close = () => box.remove();
@@ -18319,21 +18330,30 @@ async function openTextbookPage(vol, from, to) {
 
   const inRange = p => (p + PDF_PAGE_OFFSET) >= 1 && (p + PDF_PAGE_OFFSET) <= doc.numPages;
 
+  const fitWidth = () => Math.max(80, body.clientWidth - 24);
+
   // 1枚のcanvasに指定の紙面を描く。範囲外なら空にする（端では隣に何も見えない）
-  async function drawPage(canvas, paperPage) {
+  // cssW を渡すとその表示幅で描く（ダブルタップの拡大で使う）。
+  // ⚠ 拡大したときはCSSで引き伸ばすのではなく**描き直して解像度も上げる**。
+  //    引き伸ばしただけだと原本PDFの細部が出ない（軽量版は元画像が1000px幅なので
+  //    そこが上限。原本は1703px幅あるので拡大するとちゃんと細かく見える）。
+  async function drawPage(canvas, paperPage, cssW) {
     const ctx = canvas.getContext('2d');
     if (!inRange(paperPage)) {
       canvas.width = 1; canvas.height = 1; canvas.style.width = '0px';
       return;
     }
     const page = await doc.getPage(paperPage + PDF_PAGE_OFFSET);
-    // 端末の横幅に合わせて等倍以上にならない範囲で拡大する
     const base = page.getViewport({ scale: 1 });
-    const cssW = Math.max(80, body.clientWidth - 24);
-    const scale = Math.min(3, Math.max(1, cssW / base.width * (window.devicePixelRatio || 1)));
+    cssW = cssW || fitWidth();
+    // 端末の横幅に合わせて等倍以上にならない範囲で拡大する。
+    // ⚠ ビットマップの幅に上限を置く。拡大時に青天井にすると1枚で数十MBになり、
+    //    iPhoneでcanvasが確保できずに真っ白になる。
+    let scale = cssW / base.width * (window.devicePixelRatio || 1);
+    scale = Math.max(1, Math.min(scale, PDF_MAX_BITMAP_W / base.width));
     const vp = page.getViewport({ scale });
     canvas.width = vp.width; canvas.height = vp.height;
-    canvas.style.width = Math.min(cssW, vp.width) + 'px';
+    canvas.style.width = cssW + 'px';
     await page.render({ canvasContext: ctx, viewport: vp }).promise;
     // 強調語のハイライト。テキスト層が無いPDFでは黙って何もしない
     try {
@@ -18350,8 +18370,8 @@ async function openTextbookPage(vol, from, to) {
 
   // 隣の紙面は先に描いておく。同時に何枚も描かせず1枚ずつ流す
   let queue = Promise.resolve();
-  const enqueue = (canvas, p) => {
-    queue = queue.then(() => drawPage(canvas, p)).catch(() => {});
+  const enqueue = (canvas, p, cssW) => {
+    queue = queue.then(() => drawPage(canvas, p, cssW)).catch(() => {});
     return queue;
   };
 
@@ -18369,12 +18389,53 @@ async function openTextbookPage(vol, from, to) {
     else { track.insertBefore(slides[2], slides[0]); slides.unshift(slides.pop()); cur--; }
     setX(-W, false);
     updateHeader();
-    slides[1].scrollTop = 0;                       // めくったら紙面の先頭から読む
+    slides[1].scrollTop = 0; slides[1].scrollLeft = 0;   // めくったら紙面の先頭から読む
     const edge = dir > 0 ? slides[2] : slides[0];
     enqueue(edge.querySelector('canvas'), dir > 0 ? cur + 1 : cur - 1);
   }
 
+  // ダブルタップで拡大／もう一度で戻す。
+  // ⚠ 拡大中は横スワイプでページを送らない——横方向は紙面のスクロール（見回し）に使うため。
+  //    ボタンや←→キーでめくるときは、先に等倍へ戻してから送る。
+  // ⚠ 拡大の描画は必ず `enqueue` に流す。直接 `drawPage` を呼ぶと先読みの描画と
+  //    衝突して「Cannot use the same canvas during multiple render() operations」で落ちる。
+  // ⚠ 二重発火に注意。iOS Safari はダブルタップで `dblclick` も出すので、
+  //    タッチ側で拡大した直後の `dblclick` は捨てる（さもないと拡大→即縮小になる）。
+  let zoom = 1, zooming = false, lastZoomAt = 0;
+  async function applyZoom(slide, factor, px, py) {
+    if (zooming) return;
+    zooming = true;
+    lastZoomAt = Date.now();
+    try { await applyZoomInner(slide, factor, px, py); }
+    finally { zooming = false; lastZoomAt = Date.now(); }
+  }
+  async function applyZoomInner(slide, factor, px, py) {
+    const canvas = slide.querySelector('canvas');
+    const r = canvas.getBoundingClientRect();
+    // タップ点が紙面のどこか（0〜1）。拡大後もそこが指の下に来るようにスクロールする
+    const rx = r.width ? (px - r.left) / r.width : 0.5;
+    const ry = r.height ? (py - r.top) / r.height : 0.5;
+    const sr = slide.getBoundingClientRect();
+    const holdX = Math.min(Math.max(px - sr.left, 0), sr.width);
+    const holdY = Math.min(Math.max(py - sr.top, 0), sr.height);
+    zoom = factor;
+    slide.classList.toggle('zoomed', zoom > 1);
+    await enqueue(canvas, cur, fitWidth() * zoom);
+    slide.scrollLeft = canvas.offsetLeft + rx * canvas.offsetWidth - holdX;
+    slide.scrollTop = canvas.offsetTop + ry * canvas.offsetHeight - holdY;
+  }
+  const toggleZoom = (slide, px, py) =>
+    applyZoom(slide, zoom > 1 ? 1 : PDF_ZOOM, px, py);
+  async function resetZoom() {
+    if (zoom === 1) return;
+    zoom = 1;
+    slides.forEach(sl => sl.classList.remove('zoomed'));
+    await enqueue(slides[1].querySelector('canvas'), cur, fitWidth());
+    slides[1].scrollLeft = 0; slides[1].scrollTop = 0;
+  }
+
   function commit(dir) {
+    if (zoom > 1) { resetZoom().then(() => commit(dir)); return; }
     if (animating || !inRange(cur + dir)) { setX(-W, true); return; }
     animating = true;
     setX(-W - dir * W, true);
@@ -18420,7 +18481,7 @@ async function openTextbookPage(vol, from, to) {
       axis = Math.abs(dx) > Math.abs(dy) * 1.2 ? 'x' : 'y';
       dragged = true;
     }
-    if (axis !== 'x') return;
+    if (axis !== 'x' || zoom > 1) return;     // 拡大中の横方向は見回しに使う
     // 端では引っぱりを弱めて「これ以上めくれない」ことを手応えで示す
     const room = inRange(cur + (dx < 0 ? 1 : -1)) ? 1 : 0.25;
     setX(-W + dx * room, false);
@@ -18428,13 +18489,33 @@ async function openTextbookPage(vol, from, to) {
   body.addEventListener('touchend', e => {
     if (!dragging) return;
     dragging = false;
-    if (axis !== 'x') return;
+    if (axis !== 'x' || zoom > 1) return;
     const dx = e.changedTouches[0].clientX - sx;
     // 画面幅の22%を超えたらめくる。足りなければ元に戻す
     if (dx < -W * 0.22) commit(1);
     else if (dx > W * 0.22) commit(-1);
     else setX(-W, true);
   }, { passive: true });
+
+  // ⚠ 2本指のピンチは残したいので `touch-action` は `manipulation` にする
+  //    （`none`/`pan-y` にするとピンチ拡大が死ぬ）。これでSafari自身の
+  //    ダブルタップ拡大だけが止まり、こちらの拡大とぶつからなくなる。
+  let lastTap = 0, lastTX = 0, lastTY = 0;
+  body.addEventListener('touchend', e => {
+    if (e.changedTouches.length !== 1 || e.target.tagName !== 'CANVAS' || axis) { lastTap = 0; return; }
+    const t = e.changedTouches[0], now = Date.now();
+    if (now - lastTap < 320 && Math.abs(t.clientX - lastTX) < 32 && Math.abs(t.clientY - lastTY) < 32) {
+      lastTap = 0;
+      const slide = e.target.parentNode;
+      if (slide === slides[1]) toggleZoom(slide, t.clientX, t.clientY);
+    } else { lastTap = now; lastTX = t.clientX; lastTY = t.clientY; }
+  }, { passive: true });
+  body.addEventListener('dblclick', e => {                 // PC
+    if (e.target.tagName !== 'CANVAS') return;
+    if (Date.now() - lastZoomAt < 700) return;             // タッチ側で処理済み
+    const slide = e.target.parentNode;
+    if (slide === slides[1]) toggleZoom(slide, e.clientX, e.clientY);
+  });
 
   // PCでも左右キーでめくれる（オーバーレイを閉じるまで有効）
   const onKey = e => {
@@ -18452,6 +18533,7 @@ async function openTextbookPage(vol, from, to) {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
       measure();
+      zoom = 1; slides.forEach(sl => sl.classList.remove('zoomed'));
       enqueue(slides[1].querySelector('canvas'), cur);
       enqueue(slides[0].querySelector('canvas'), cur - 1);
       enqueue(slides[2].querySelector('canvas'), cur + 1);
