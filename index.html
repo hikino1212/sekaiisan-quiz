@@ -1196,12 +1196,18 @@ button.q-page-badge:hover { background: #F3EAD3; border-color: #C9B77F; }
   font-size: 17px; line-height: 1; font-family: inherit;
 }
 .pdf-nav button:hover { background: #454037; }
-.pdf-body { flex: 1 1 auto; overflow: auto; display: flex; justify-content: center;
-  align-items: flex-start; padding: 12px; cursor: zoom-out; }
-.pdf-body canvas, .pdf-msg { cursor: auto; }
-.pdf-body canvas { background: #fff; border-radius: 4px; box-shadow: 0 6px 24px rgba(0,0,0,.4); display: none; }
-.pdf-msg { color: #F0E7D2; font-size: 14px; line-height: 1.8; max-width: 520px;
-  background: rgba(0,0,0,.25); border-radius: 10px; padding: 16px 18px; margin-top: 40px; }
+/* 前・現在・次の3枚を横に並べ、トラックごと translateX で動かす。
+   1枚を描き替える作りだとページが瞬間的に入れ替わるだけで、めくる感触が出ない */
+.pdf-body { flex: 1 1 auto; overflow: hidden; position: relative; }
+.pdf-track { display: flex; height: 100%; will-change: transform; }
+.pdf-slide { flex: 0 0 100%; height: 100%; box-sizing: border-box; padding: 12px;
+  overflow-y: auto; overflow-x: hidden; cursor: zoom-out;
+  display: flex; justify-content: center; align-items: flex-start; }
+.pdf-slide canvas { background: #fff; border-radius: 4px; cursor: auto;
+  box-shadow: 0 6px 24px rgba(0,0,0,.4); }
+.pdf-msg { position: absolute; left: 50%; top: 40px; transform: translateX(-50%);
+  color: #F0E7D2; font-size: 14px; line-height: 1.8; max-width: 520px; cursor: auto;
+  background: rgba(0,0,0,.25); border-radius: 10px; padding: 16px 18px; }
 
 .pdf-rows { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
 .pdf-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -18259,6 +18265,11 @@ function drawPageHighlights(ctx, textContent, vp, terms, lib) {
 }
 
 // 紙面を描画する。範囲（P275-276）なら前後めくりも出す。
+//
+// ⚠ 1枚のcanvasを描き替える作りにしない。それだとページが「瞬間的に入れ替わる」だけで、
+//    めくっている感触が出ない。**前・現在・次の3枚を横に並べたトラック**を持ち、
+//    指の動きにtranslateXで追従させて、離したらスナップさせる。
+//    めくり終わったら端の1枚をもう一方の端へ回して常に3枚に保つ（`recycle()`）。
 async function openTextbookPage(vol, from, to) {
   const box = document.createElement('div');
   box.className = 'pdf-view';
@@ -18273,20 +18284,27 @@ async function openTextbookPage(vol, from, to) {
       '</span>' +
     '</div>' +
     '<div class="pdf-hl-note"></div>' +
-    '<div class="pdf-body"><div class="pdf-msg" id="pdfMsg">読み込んでいます…</div>' +
-    '<canvas id="pdfCanvas"></canvas></div>' +
-    '<div class="pdf-hint">← スワイプでページ送り →　／　余白をタップで閉じる</div>';
+    '<div class="pdf-body">' +
+      '<div class="pdf-msg" id="pdfMsg">読み込んでいます…</div>' +
+      '<div class="pdf-track" id="pdfTrack">' +
+        '<div class="pdf-slide"><canvas></canvas></div>' +
+        '<div class="pdf-slide"><canvas></canvas></div>' +
+        '<div class="pdf-slide"><canvas></canvas></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="pdf-hint">← スワイプでめくる →　／　余白をタップで閉じる</div>';
   const old = document.getElementById('pdfView'); if (old) old.remove();
   document.body.appendChild(box);
   const close = () => box.remove();
   box.querySelector('#pdfClose').onclick = close;
 
   const msg = box.querySelector('#pdfMsg');
-  const canvas = box.querySelector('#pdfCanvas');
   const body = box.querySelector('.pdf-body');
-  let cur = from, doc = null, busy = false;
+  const track = box.querySelector('#pdfTrack');
+  let slides = Array.prototype.slice.call(track.children);   // 前・現在・次
+  let cur = from, doc = null, W = 0, animating = false;
 
-  const fail = t => { msg.textContent = t; msg.style.display = 'block'; canvas.style.display = 'none'; };
+  const fail = t => { msg.textContent = t; msg.style.display = 'block'; track.style.display = 'none'; };
 
   try {
     doc = await pdfDocFor(vol);
@@ -18299,82 +18317,153 @@ async function openTextbookPage(vol, from, to) {
     return;
   }
 
-  // 連打・連続スワイプで描画が重ならないよう、1枚ずつ処理する
-  async function draw(paperPage) {
-    const n = paperPage + PDF_PAGE_OFFSET;
-    if (busy || n < 1 || n > doc.numPages) return;
-    busy = true;
+  const inRange = p => (p + PDF_PAGE_OFFSET) >= 1 && (p + PDF_PAGE_OFFSET) <= doc.numPages;
+
+  // 1枚のcanvasに指定の紙面を描く。範囲外なら空にする（端では隣に何も見えない）
+  async function drawPage(canvas, paperPage) {
+    const ctx = canvas.getContext('2d');
+    if (!inRange(paperPage)) {
+      canvas.width = 1; canvas.height = 1; canvas.style.width = '0px';
+      return;
+    }
+    const page = await doc.getPage(paperPage + PDF_PAGE_OFFSET);
+    // 端末の横幅に合わせて等倍以上にならない範囲で拡大する
+    const base = page.getViewport({ scale: 1 });
+    const cssW = Math.max(80, body.clientWidth - 24);
+    const scale = Math.min(3, Math.max(1, cssW / base.width * (window.devicePixelRatio || 1)));
+    const vp = page.getViewport({ scale });
+    canvas.width = vp.width; canvas.height = vp.height;
+    canvas.style.width = Math.min(cssW, vp.width) + 'px';
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    // 強調語のハイライト。テキスト層が無いPDFでは黙って何もしない
     try {
-      cur = paperPage;
-      box.querySelector('#pdfPageNo').textContent = paperPage;
-      const page = await doc.getPage(n);
-      // 端末の横幅に合わせて等倍以上にならない範囲で拡大する
-      const base = page.getViewport({ scale: 1 });
-      const scale = Math.min(3, Math.max(1, (box.clientWidth - 24) / base.width * (window.devicePixelRatio || 1)));
-      const vp = page.getViewport({ scale });
-      canvas.width = vp.width; canvas.height = vp.height;
-      canvas.style.width = Math.min(box.clientWidth - 24, vp.width) + 'px';
-      msg.style.display = 'none'; canvas.style.display = 'block';
-      const ctx = canvas.getContext('2d');
-      await page.render({ canvasContext: ctx, viewport: vp }).promise;
-      // 強調語のハイライト。テキスト層が無いPDFでは黙って何もしない
-      try {
-        const terms = termsForPage(vol, paperPage);
-        if (terms.red.length || terms.black.length) {
-          const tc = await page.getTextContent();
-          const n2 = drawPageHighlights(ctx, tc, vp, terms, await ensurePdfjs());
-          const hint = box.querySelector('.pdf-hl-note');
-          if (hint) hint.textContent = tc.items.length ? '' :
-            'このPDFは文字情報を持たないため、強調語のハイライトは出ません（tools/軽量版PDFを作る.py で作り直すと出ます）';
-        }
-      } catch (e) { /* ハイライトは付加機能。失敗しても紙面は出す */ }
-      body.scrollTop = 0;                       // めくったら紙面の先頭から読む
-    } finally { busy = false; }
+      const terms = termsForPage(vol, paperPage);
+      if (terms.red.length || terms.black.length) {
+        const tc = await page.getTextContent();
+        drawPageHighlights(ctx, tc, vp, terms, await ensurePdfjs());
+        const hint = box.querySelector('.pdf-hl-note');
+        if (hint) hint.textContent = tc.items.length ? '' :
+          'このPDFは文字情報を持たないため、強調語のハイライトは出ません（tools/軽量版PDFを作る.py で作り直すと出ます）';
+      }
+    } catch (e) { /* ハイライトは付加機能。失敗しても紙面は出す */ }
   }
-  box.querySelector('#pdfPrev').onclick = () => draw(cur - 1);
-  box.querySelector('#pdfNext').onclick = () => draw(cur + 1);
+
+  // 隣の紙面は先に描いておく。同時に何枚も描かせず1枚ずつ流す
+  let queue = Promise.resolve();
+  const enqueue = (canvas, p) => {
+    queue = queue.then(() => drawPage(canvas, p)).catch(() => {});
+    return queue;
+  };
+
+  const setX = (px, animate) => {
+    track.style.transition = animate ? 'transform .28s cubic-bezier(.22,.61,.36,1)' : 'none';
+    track.style.transform = 'translateX(' + px + 'px)';
+  };
+  const measure = () => { W = body.clientWidth; setX(-W, false); };
+
+  function updateHeader() { box.querySelector('#pdfPageNo').textContent = cur; }
+
+  // めくり終わったら、端の1枚を反対側へ回して常に3枚に保つ
+  function recycle(dir) {
+    if (dir > 0) { track.appendChild(slides[0]); slides.push(slides.shift()); cur++; }
+    else { track.insertBefore(slides[2], slides[0]); slides.unshift(slides.pop()); cur--; }
+    setX(-W, false);
+    updateHeader();
+    slides[1].scrollTop = 0;                       // めくったら紙面の先頭から読む
+    const edge = dir > 0 ? slides[2] : slides[0];
+    enqueue(edge.querySelector('canvas'), dir > 0 ? cur + 1 : cur - 1);
+  }
+
+  function commit(dir) {
+    if (animating || !inRange(cur + dir)) { setX(-W, true); return; }
+    animating = true;
+    setX(-W - dir * W, true);
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      track.removeEventListener('transitionend', finish);
+      recycle(dir);
+      animating = false;
+    };
+    track.addEventListener('transitionend', finish);
+    setTimeout(finish, 400);          // transitionend が来なかったときの保険
+  }
+
+  box.querySelector('#pdfPrev').onclick = () => commit(-1);
+  box.querySelector('#pdfNext').onclick = () => commit(1);
 
   // 紙面以外（余白）を触ったら閉じる。
   // ⚠ オーバーレイ自身（.pdf-view）へのクリックでは判定できない——.pdf-body が
-  //    全面を覆っているので e.target がそちらになる。余白の判定は .pdf-body 側で行う。
+  //    全面を覆っているので e.target がそちらになる。余白の判定は body 側で行う。
   let dragged = false;
   body.addEventListener('click', e => {
     if (dragged) { dragged = false; return; }   // スワイプ・スクロールの直後は閉じない
-    if (e.target !== canvas) close();
+    if (e.target.tagName !== 'CANVAS') close();
   });
 
-  // 左右のスワイプでページ送り。
+  // 指に追従してめくる。
   // ⚠ touchmove で preventDefault してはいけない——縦スクロールとピンチ拡大が死ぬ。
+  //    最初の8pxで縦か横かを決め打ちし（軸ロック）、横のときだけトラックを動かす。
   //    紙面は横幅に収めて描いているので横スクロールは元々無く、横方向は奪って構わない。
-  let sx = 0, sy = 0, tracking = false;
+  let sx = 0, sy = 0, axis = null, dragging = false;
   body.addEventListener('touchstart', e => {
-    if (e.touches.length !== 1) { tracking = false; return; }   // ピンチは対象外
-    tracking = true; dragged = false;
+    if (animating || e.touches.length !== 1) { dragging = false; return; }   // ピンチは対象外
+    dragging = true; axis = null; dragged = false;
     sx = e.touches[0].clientX; sy = e.touches[0].clientY;
   }, { passive: true });
   body.addEventListener('touchmove', e => {
-    if (!tracking || e.touches.length !== 1) { tracking = false; return; }
-    if (Math.abs(e.touches[0].clientX - sx) > 10 || Math.abs(e.touches[0].clientY - sy) > 10) dragged = true;
+    if (!dragging || e.touches.length !== 1) { dragging = false; return; }
+    const dx = e.touches[0].clientX - sx, dy = e.touches[0].clientY - sy;
+    if (!axis) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      axis = Math.abs(dx) > Math.abs(dy) * 1.2 ? 'x' : 'y';
+      dragged = true;
+    }
+    if (axis !== 'x') return;
+    // 端では引っぱりを弱めて「これ以上めくれない」ことを手応えで示す
+    const room = inRange(cur + (dx < 0 ? 1 : -1)) ? 1 : 0.25;
+    setX(-W + dx * room, false);
   }, { passive: true });
   body.addEventListener('touchend', e => {
-    if (!tracking) return;
-    tracking = false;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - sx, dy = t.clientY - sy;
-    // 縦に振れているものは（スクロールなので）ページ送りにしない
-    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) draw(dx < 0 ? cur + 1 : cur - 1);
+    if (!dragging) return;
+    dragging = false;
+    if (axis !== 'x') return;
+    const dx = e.changedTouches[0].clientX - sx;
+    // 画面幅の22%を超えたらめくる。足りなければ元に戻す
+    if (dx < -W * 0.22) commit(1);
+    else if (dx > W * 0.22) commit(-1);
+    else setX(-W, true);
   }, { passive: true });
 
   // PCでも左右キーでめくれる（オーバーレイを閉じるまで有効）
   const onKey = e => {
     if (!document.getElementById('pdfView')) { document.removeEventListener('keydown', onKey); return; }
-    if (e.key === 'ArrowLeft') draw(cur - 1);
-    else if (e.key === 'ArrowRight') draw(cur + 1);
+    if (e.key === 'ArrowLeft') commit(-1);
+    else if (e.key === 'ArrowRight') commit(1);
     else if (e.key === 'Escape') close();
   };
   document.addEventListener('keydown', onKey);
 
-  await draw(from);
+  // 画面幅が変わったら描き直す（canvasの寸法が幅に依存しているため）
+  let resizeTimer = null;
+  const onResize = () => {
+    if (!document.getElementById('pdfView')) { window.removeEventListener('resize', onResize); return; }
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      measure();
+      enqueue(slides[1].querySelector('canvas'), cur);
+      enqueue(slides[0].querySelector('canvas'), cur - 1);
+      enqueue(slides[2].querySelector('canvas'), cur + 1);
+    }, 200);
+  };
+  window.addEventListener('resize', onResize);
+
+  measure();
+  msg.style.display = 'none';
+  await enqueue(slides[1].querySelector('canvas'), cur);   // 今のページを先に出す
+  enqueue(slides[0].querySelector('canvas'), cur - 1);     // 隣は裏で用意しておく
+  enqueue(slides[2].querySelector('canvas'), cur + 1);
 }
 
 // 設問カードのページバッジから呼ぶ。'[中]P275-276' を解いて開く。
