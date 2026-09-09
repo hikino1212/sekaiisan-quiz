@@ -1264,6 +1264,39 @@ body.mode-basic .roadmap-chev { color: #8A8270; }
 .cite-page:hover { background: #F3EAD3; border-color: #C9B77F; color: #9B3B2E; }
 body.mode-basic .cite-page { background: #F1F1EE; border-color: #DADAD4; color: #6A6A64; }
 
+/* ===== レベル2完走のノルマ（毎日いちばん見る数字なので、畳んでも出す） ===== */
+.goal-pace { margin: 12px 0 4px; padding: 12px 14px; border-radius: 12px;
+  background: linear-gradient(180deg, #FFF8E8 0%, #FDF3DF 100%);
+  border: 1px solid #E4D5AE; }
+.goal-pace.cleared { background: linear-gradient(180deg, #EEF7EC 0%, #E4F1E0 100%); border-color: #BBD8B4; }
+.goal-pace.done { background: linear-gradient(180deg, #EEF7EC 0%, #E4F1E0 100%); border-color: #BBD8B4; text-align: center; }
+.goal-pace-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.goal-pace-head { font-size: 19px; font-weight: 700; color: #7A4A18; line-height: 1.35; }
+.goal-pace-head b { font-size: 26px; color: #9B3B2E; }
+.goal-pace.cleared .goal-pace-head, .goal-pace.done .goal-pace-head { color: #2E6B4F; }
+.goal-pace-sub { margin-top: 3px; font-size: 12px; color: #6B6152; line-height: 1.7; }
+.goal-pace-sub b { color: #7A4A18; }
+.goal-pace-go { flex: 0 0 auto; border: 0; border-radius: 100px; cursor: pointer;
+  background: #9B3B2E; color: #FFF6E4; font-family: inherit; font-size: 13px; font-weight: 700;
+  padding: 9px 16px; box-shadow: 0 2px 6px rgba(155,59,46,.28); }
+.goal-pace-go:active { transform: translateY(1px); }
+.goal-pace.cleared .goal-pace-go { background: #2E6B4F; box-shadow: 0 2px 6px rgba(46,107,79,.28); }
+.goal-pace-bar { margin-top: 10px; height: 10px; border-radius: 100px; background: #EBE0C6; overflow: hidden; }
+.goal-pace-fill { height: 100%; border-radius: 100px; background: linear-gradient(90deg, #C4703A, #A8823C);
+  transition: width .4s ease; }
+.goal-pace.cleared .goal-pace-fill { background: linear-gradient(90deg, #4E9A70, #2E6B4F); }
+.goal-pace-meta { margin-top: 7px; display: flex; flex-wrap: wrap; gap: 4px 14px;
+  font-size: 11px; color: #7A7263; }
+.goal-pace-meta b { color: #5B5346; font-size: 12px; }
+.goal-pace-track { margin-top: 6px; height: 4px; border-radius: 100px; background: #EBE0C6; overflow: hidden; }
+.goal-pace-track-fill { height: 100%; background: #A8823C; transition: width .4s ease; }
+.goal-pace.cleared .goal-pace-track-fill { background: #2E6B4F; }
+.goal-pace.cleared .goal-pace-bar, .goal-pace.cleared .goal-pace-track { background: #D4E6CE; }
+.goal-pace-outlook { margin-top: 8px; font-size: 11.5px; line-height: 1.7; }
+.goal-pace-outlook.ahead { color: #2E6B4F; }
+.goal-pace-outlook.behind { color: #8A5A2B; }
+/* ⚠ 数字の意味を持つ色なので、mode-basic でもグレーに落とさない（ヒートマップと同じ扱い） */
+body.mode-basic .goal-pace-go { color: #FFF6E4; }
 </style>
 </head>
 <body>
@@ -19581,6 +19614,123 @@ function computePriorityBoard() {
 // 本番は上位レベル相当も出るという実態と食い違うため（レベル1を完答しても実際は160点に届かない）。
 // 出題レベルが実際に効くのは、クリック後のドリル（openWeaknessDrill）が出す問題の範囲だけ。
 const EXAM_66 = { exam: new Date(2026, 11, 13), cbt: new Date(2026, 10, 29), target: 160, fullMark: 200 };
+
+// ===== レベル2完走のノルマ（`computeGoalPace()` / `renderGoalPace()`）=====
+// 「試験の2ヶ月前までにレベル2を終わらせる」を、毎日の問題数に落として出す。
+// **終わらせる＝レベル2以下の全問を一度ずつ解く**（1,985問）。解き直しは進みに数えない。
+//
+// ⚠ ノルマは毎日その場で計算し直す（残り ÷ 残り日数）。固定の数字を持たない——
+//    進んだ日の翌日は自動で軽くなり、休んだ日の翌日は自動で重くなる。
+//    「貯金／借金」を別に持たなくても、この1つの数字に織り込まれる。
+const GOAL_TIER = 2;
+function goalDeadline() {
+  const d = new Date(EXAM_66.exam);
+  d.setMonth(d.getMonth() - 2);       // 試験（12/13）の2ヶ月前 ＝ 10/13
+  return d;
+}
+function computeGoalPace() {
+  const DAY = 1000 * 60 * 60 * 24;
+  const answeredSet = new Set(progress.answeredIds);
+  const target = QUESTIONS.filter(q => tierOf(q) <= GOAL_TIER);
+  const total = target.length;
+  const done = target.filter(q => answeredSet.has(q.id)).length;
+  const remaining = total - done;
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const deadline = goalDeadline();
+  const daysLeft = Math.round((deadline - today) / DAY) + 1;      // 今日を含む
+  const overdue = daysLeft <= 0;
+  // 目標日を過ぎたら、CBT開始までを新しい持ち時間にする（そこで諦めさせない）
+  const horizon = overdue ? Math.max(1, Math.round((EXAM_66.cbt - today) / DAY)) : daysLeft;
+  const perDay = remaining > 0 ? Math.ceil(remaining / horizon) : 0;
+
+  const doneToday = (progress.dailyStats[todayKey()] || {}).goal || 0;
+  const leftToday = Math.max(0, perDay - doneToday);
+
+  // 直近7日の実績ペース。**今日は途中なので入れない**（朝に見ると必ず遅れて見えるため）
+  let sum = 0;
+  for (let i = 7; i >= 1; i--) sum += (progress.dailyStats[shiftDateKey(todayKey(), -i)] || {}).goal || 0;
+  const avg = sum / 7;
+  let projDate = null, projDiff = null;
+  if (avg > 0 && remaining > 0) {
+    const projDays = Math.ceil(remaining / avg);
+    projDate = new Date(today.getTime() + projDays * DAY);
+    projDiff = Math.round((projDate - deadline) / DAY);           // 正＝遅れ／負＝前倒し
+  }
+  return { total, done, remaining, deadline, daysLeft, overdue, horizon,
+           perDay, doneToday, leftToday, avg, projDate, projDiff,
+           pct: total ? Math.round(done / total * 100) : 0 };
+}
+
+// 今日のぶんだけを出題する。残り全部を渡すと数が多すぎて手が止まるので、
+// **今日のノルマの残りぶんだけ**を切り出す。教科書の並び順で先頭から取る。
+function startTodayGoalDrill() {
+  const g = computeGoalPace();
+  const answeredSet = new Set(progress.answeredIds);
+  const pool = QUESTIONS.filter(q => tierOf(q) <= GOAL_TIER && !answeredSet.has(q.id));
+  if (pool.length === 0) return;
+  const n = Math.max(1, g.leftToday || g.perDay || 10);
+  openCustomReview(pool.slice(0, n).map(q => q.id), '今日のぶん（レベル2）');
+}
+
+function renderGoalPace() {
+  const g = computeGoalPace();
+  const md = (g.deadline.getMonth() + 1) + '月' + g.deadline.getDate() + '日';
+
+  if (g.remaining === 0) {
+    return '<div class="goal-pace done">' +
+      '<div class="goal-pace-head">🎉 レベル2、完走</div>' +
+      '<div class="goal-pace-sub">' + g.total + '問すべてに解答済み。ここから先はレベル3と、間違えた問題の周回へ。</div>' +
+    '</div>';
+  }
+
+  const cleared = g.doneToday >= g.perDay;
+  const pctToday = g.perDay ? Math.min(100, Math.round(g.doneToday / g.perDay * 100)) : 100;
+
+  const headline = cleared
+    ? '今日のぶん、完了 🎉'
+    : '今日はあと <b>' + g.leftToday + '</b> 問';
+  const sub = cleared
+    ? '今日のノルマ' + g.perDay + '問に対して ' + g.doneToday + '問。進めたぶん、明日のノルマは自動で軽くなります。'
+    : '1日のノルマ <b>' + g.perDay + '</b>問（残り ' + g.remaining + '問 ÷ あと ' + g.horizon + '日）';
+
+  // ペースの見通し。遅れているときは責めず、「あと何問でどうなるか」を出す
+  let outlook = '';
+  if (g.projDiff !== null) {
+    const pm = (g.projDate.getMonth() + 1) + '月' + g.projDate.getDate() + '日';
+    if (g.projDiff <= 0) {
+      outlook = '<div class="goal-pace-outlook ahead">直近7日のペース（1日' + g.avg.toFixed(1) + '問）なら <b>' + pm +
+        '</b> に完了。目標より <b>' + Math.abs(g.projDiff) + '日</b> 早い見込みです。</div>';
+    } else {
+      const need = Math.max(1, Math.ceil(g.perDay - g.avg));
+      outlook = '<div class="goal-pace-outlook behind">直近7日のペース（1日' + g.avg.toFixed(1) + '問）だと ' + pm +
+        '。<b>1日あと ' + need + '問</b>で目標日に届きます。</div>';
+    }
+  }
+
+  const overdueNote = g.overdue
+    ? '<div class="goal-pace-outlook behind">目標日（' + md + '）は過ぎました。CBT開始までを持ち時間に切り替えています。</div>'
+    : '';
+
+  return '<div class="goal-pace' + (cleared ? ' cleared' : '') + '">' +
+    '<div class="goal-pace-top">' +
+      '<div><div class="goal-pace-head">' + headline + '</div>' +
+      '<div class="goal-pace-sub">' + sub + '</div></div>' +
+      '<button type="button" class="goal-pace-go" id="goalPaceGo">' +
+        (cleared ? 'もう少し解く' : '始める') + '</button>' +
+    '</div>' +
+    '<div class="goal-pace-bar" title="今日のノルマの達成度">' +
+      '<div class="goal-pace-fill" style="width:' + pctToday + '%;"></div></div>' +
+    '<div class="goal-pace-meta">' +
+      '<span>今日 <b>' + g.doneToday + '</b>／' + g.perDay + '問</span>' +
+      '<span>レベル2 <b>' + g.done + '</b>／' + g.total + '問（' + g.pct + '%）</span>' +
+      '<span>目標 ' + md + 'まで</span>' +
+    '</div>' +
+    '<div class="goal-pace-track"><div class="goal-pace-track-fill" style="width:' + g.pct + '%;"></div></div>' +
+    outlook + overdueNote +
+  '</div>';
+}
 const ROADMAP_PHASES = [
   { end: new Date(2026, 8, 15), no: 1, label: 'Phase 1・土台の固め',
     focus: '配点の重い<b>基礎知識＋日本</b>を先に90%へ。まず足場を固める。' },
@@ -19650,13 +19800,18 @@ function shiftDateKey(key, delta) {
 }
 // 正誤判定のたびに呼ぶ。isCorrectionは同一問題の自己採点を訂正したときの差分反映で、
 // 訂正は採点直後・同日内にしか起きない操作なので、その日の集計だけを増減すればよい。
-function recordDailyStat(isCorrect, isCorrection) {
+// ⚠ ノルマの進みは `answered` では測れない。あれは採点のたびに増えるので、
+//    同じ問題を解き直してもレベル3を解いても増えてしまう。**残りが実際に減るのは
+//    「レベル2以下の問題を初めて解いたとき」だけ**なので、それを `goal` に別途数える。
+//    古い日の記録に `goal` は無いので、読むときは 0 とみなす。
+function recordDailyStat(isCorrect, isCorrection, countsForGoal) {
   const key = todayKey();
-  if (!progress.dailyStats[key]) progress.dailyStats[key] = { answered: 0, correct: 0 };
+  if (!progress.dailyStats[key]) progress.dailyStats[key] = { answered: 0, correct: 0, goal: 0 };
   const day = progress.dailyStats[key];
   if (!isCorrection) {
     day.answered++;
     if (isCorrect) day.correct++;
+    if (countsForGoal) day.goal = (day.goal || 0) + 1;
   } else {
     day.correct = Math.max(0, day.correct + (isCorrect ? 1 : -1));
   }
@@ -19684,7 +19839,8 @@ function getRecentDailyStats(days) {
   for (let i = days - 1; i >= 0; i--) {
     const key = shiftDateKey(todayKey(), -i);
     const day = progress.dailyStats[key] || { answered: 0, correct: 0 };
-    out.push({ key, answered: day.answered, correct: day.correct, accuracy: day.answered ? day.correct / day.answered : 0 });
+    out.push({ key, answered: day.answered, correct: day.correct, goal: day.goal || 0,
+               accuracy: day.answered ? day.correct / day.answered : 0 });
   }
   return out;
 }
@@ -19774,6 +19930,7 @@ function renderRoadmapBoard() {
     '<div class="roadmap-head">' + head + '</div>' +
     '<div class="roadmap-phase"><span class="roadmap-phase-tag">' + phase.label + '</span>' +
       '<span class="roadmap-phase-focus">' + phase.focus + '</span></div>' +
+    renderGoalPace() +
     (roadmapOpen ? (
     streakLine +
     '<div class="roadmap-score">' + scoreLine + '</div>' +
@@ -19984,6 +20141,9 @@ function renderList() {
 
   const rmToggle = document.getElementById('roadmapToggle');
   if (rmToggle) rmToggle.onclick = toggleRoadmap;
+
+  const goBtn = document.getElementById('goalPaceGo');
+  if (goBtn) goBtn.onclick = startTodayGoalDrill;
 
   document.querySelectorAll('.weak-grid .weak-cell').forEach(cell => {
     cell.onclick = () => openWeaknessDrill(cell.getAttribute('data-seg'));
@@ -20910,6 +21070,7 @@ async function toggleBookmark(qId) {
 
 async function gradeAnswer(isCorrect, isCorrection) {
   if (answered && !isCorrection) return;
+  let isNewAnswer = false;          // 初めて解いた問題か（ノルマの進みはこれで数える）
 
   if (isCorrection && lastGradedCorrect !== null) {
     if (lastGradedCorrect) {
@@ -20920,10 +21081,11 @@ async function gradeAnswer(isCorrect, isCorrection) {
     }
   } else {
     answered = true;
-    if (!progress.answeredIds.includes(currentQ.id)) progress.answeredIds.push(currentQ.id);
+    isNewAnswer = !progress.answeredIds.includes(currentQ.id);
+    if (isNewAnswer) progress.answeredIds.push(currentQ.id);
     progress.answerCounts[currentQ.id] = (progress.answerCounts[currentQ.id] || 0) + 1;
   }
-  recordDailyStat(isCorrect, isCorrection);
+  recordDailyStat(isCorrect, isCorrection, isNewAnswer && tierOf(currentQ) <= GOAL_TIER);
   lastGradedCorrect = isCorrect;
 
   if (isCorrect) {
