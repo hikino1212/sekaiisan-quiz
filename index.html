@@ -19616,7 +19616,7 @@ function computePriorityBoard() {
 const EXAM_66 = { exam: new Date(2026, 11, 13), cbt: new Date(2026, 10, 29), target: 160, fullMark: 200 };
 
 // ===== レベル2完走のノルマ（`computeGoalPace()` / `renderGoalPace()`）=====
-// 「試験の2ヶ月前までにレベル2を終わらせる」を、毎日の問題数に落として出す。
+// 「試験の1ヶ月前までにレベル2を終わらせる」を、毎日の問題数に落として出す。
 // **終わらせる＝レベル2以下の全問を一度ずつ解く**（1,985問）。解き直しは進みに数えない。
 //
 // ⚠ ノルマは毎日その場で計算し直す（残り ÷ 残り日数）。固定の数字を持たない——
@@ -19625,7 +19625,7 @@ const EXAM_66 = { exam: new Date(2026, 11, 13), cbt: new Date(2026, 10, 29), tar
 const GOAL_TIER = 2;
 function goalDeadline() {
   const d = new Date(EXAM_66.exam);
-  d.setMonth(d.getMonth() - 2);       // 試験（12/13）の2ヶ月前 ＝ 10/13
+  d.setMonth(d.getMonth() - 1);       // 試験（12/13）の1ヶ月前 ＝ 11/13
   return d;
 }
 function computeGoalPace() {
