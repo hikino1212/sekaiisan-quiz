@@ -20,7 +20,7 @@
 //
 // ⚠ `sw.js` 自身がHTTPキャッシュに残ると更新が遅れるので、
 //   登録側で `updateViaCache: 'none'` を付けている（app.js の registerServiceWorker）。
-const VERSION = '2026-09-23 16:19';
+const VERSION = '2026-09-23 16:24';
 const CACHE = 'sekaiisan-' + VERSION;
 
 // './' は配信先のディレクトリ（＝index.html）。PDF.js はページを送るのに要る。
