@@ -538,8 +538,11 @@ body.mode-basic .q-level-badge.lv4 { background: #E8E8E6; color: #6A6A64; }
 /* ホーム画面の他のカード（.story-card共通のクリーム地＋薄ボーダー）と見分けがつくよう、
    このカードだけ上端にアクセントの帯とやや強めの影を付けて「一番大事な場所」を目立たせる。
    帯を描くための::beforeにposition:relativeが要る。 */
+/* 2026/11/5・利用者要望「合格ロードマップの枠をもう少しコンパクトにしたい」で余白を詰めた。
+   .story-card の余白（広い画面では 32px 30px）より強く効かせるため、2つのクラスで指定する */
+.story-card.roadmap-board { padding: 14px 16px 12px; }
+@media (min-width: 760px) { .story-card.roadmap-board { padding: 16px 22px 14px; } }
 .roadmap-board {
-  padding-top: 18px;
   position: relative;
   overflow: hidden;
   background: linear-gradient(180deg, #FDF9EF 0%, #FBF7EC 65%);
@@ -555,43 +558,32 @@ body.mode-basic .q-level-badge.lv4 { background: #E8E8E6; color: #6A6A64; }
 }
 .roadmap-head {
   font-family: "Hiragino Mincho ProN", "Yu Mincho", YuMincho, serif;
-  font-size: 14px; color: #4A4537; margin-bottom: 10px;
+  font-size: 14px; color: #4A4537; margin: 6px 0 2px;
 }
 .roadmap-head b { font-size: 20px; color: #9B3B2E; font-variant-numeric: tabular-nums; }
 /* 学習ストリーク。連続日数がある時だけレンガ色で強調し、途切れた時はニュートラルな促し文言にする */
-.roadmap-streak { font-size: 12.5px; color: #8A8270; margin: -4px 0 10px; }
+.roadmap-streak { font-size: 12.5px; color: #8A8270; margin: 8px 0 6px; }
 .roadmap-streak.has-streak { color: #9B3B2E; font-weight: 700; }
 .roadmap-streak.has-streak b { font-size: 15px; font-variant-numeric: tabular-nums; }
-.roadmap-phase {
-  display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 10px;
-  padding: 10px 12px; background: #F3EAD3; border: 1px solid #D8CBA8;
-  border-radius: 8px; margin-bottom: 12px;
-}
-.roadmap-phase-tag {
-  font-size: 12px; font-weight: 700; color: #fff; background: #9B3B2E;
-  padding: 3px 10px; border-radius: 100px; white-space: nowrap;
-}
-.roadmap-phase-focus { font-size: 12.5px; line-height: 1.7; color: #4A4537; flex: 1; min-width: 180px; }
-.roadmap-phase-focus b { color: #9B3B2E; }
-.roadmap-score { font-size: 13px; color: #4A4537; margin-bottom: 6px; }
+.roadmap-score { font-size: 13px; color: #4A4537; margin: 8px 0 5px; }
 .roadmap-score b { font-size: 17px; color: #9B3B2E; font-variant-numeric: tabular-nums; }
 .roadmap-score-bar {
   position: relative; height: 10px; background: #EDE4CB; border: 1px solid #D8CBA8;
-  border-radius: 5px; overflow: hidden; margin-bottom: 16px;
+  border-radius: 5px; overflow: hidden; margin-bottom: 10px;
 }
 .roadmap-score-fill { height: 100%; background: #B0955A; border-radius: 5px 0 0 5px; transition: width 0.3s ease; }
 /* 目標160点＝満点の80%位置に目印 */
 .roadmap-score-goal { position: absolute; top: -2px; bottom: -2px; left: 80%; width: 2px; background: #9B3B2E; }
 .roadmap-advice {
-  margin-bottom: 14px; padding: 10px 12px; background: #FBF7EC; border: 1px solid #E6DBBF;
-  border-radius: 8px; font-size: 12.5px; line-height: 1.7; color: #4A4537;
+  margin-bottom: 10px; padding: 7px 10px; background: #FBF7EC; border: 1px solid #E6DBBF;
+  border-radius: 8px; font-size: 12px; line-height: 1.6; color: #4A4537;
 }
 .roadmap-advice b { color: #9B3B2E; }
 /* 直近7日の学習量。バーの高さ=解答数、色=正答率（データの意味を持つ色分けなので、
    ヒートマップのweak-*クラスと同じくmode-basicでも色は変えない） */
-.roadmap-trend-label { font-size: 11px; color: #8A8270; margin: 2px 0 6px; }
-.roadmap-trend { display: flex; align-items: flex-end; gap: 6px; height: 52px; margin-bottom: 16px; }
-.trend-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; }
+.roadmap-trend-label { font-size: 11px; color: #8A8270; margin: 0 0 4px; }
+.roadmap-trend { display: flex; align-items: flex-end; gap: 6px; height: 40px; margin-bottom: 10px; }
+.trend-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; height: 100%; }
 .trend-bar-track { flex: 1; width: 100%; max-width: 22px; display: flex; align-items: flex-end; }
 .trend-bar { width: 100%; border-radius: 3px 3px 0 0; transition: height 0.2s ease; }
 .trend-bar-empty { background: #E5DEC9; }
@@ -599,17 +591,17 @@ body.mode-basic .q-level-badge.lv4 { background: #E8E8E6; color: #6A6A64; }
 .trend-bar-mid { background: #D9A94C; }
 .trend-bar-good { background: #4F6B42; }
 .trend-day { font-size: 10px; color: #B0A684; }
-.roadmap-heat-label { font-size: 11px; color: #8A8270; line-height: 1.6; margin-bottom: 8px; }
+.roadmap-heat-label { font-size: 11px; color: #8A8270; line-height: 1.5; margin-bottom: 6px; }
 .weak-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .weak-cell {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
-  padding: 8px 4px; border-radius: 8px; border: 1px solid #D8CBA8;
+  padding: 5px 4px; border-radius: 8px; border: 1px solid #D8CBA8;
   font-family: inherit; cursor: pointer; transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 .weak-cell:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
 .weak-cell:focus-visible { outline: 2px solid #A8823C; outline-offset: 2px; }
 .weak-cell-name { font-size: 11.5px; font-weight: 700; }
-.weak-cell-val { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.weak-cell-val { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
 .weak-cell-sub { font-size: 9.5px; opacity: 0.75; font-variant-numeric: tabular-nums; }
 /* 4段階の色分け（未着手→要強化→あと一歩→仕上がり） */
 .weak-none   { background: #EFE9DA; color: #9A917B; border-color: #DED3B4; }
@@ -617,7 +609,7 @@ body.mode-basic .q-level-badge.lv4 { background: #E8E8E6; color: #6A6A64; }
 .weak-mid    { background: #F5E9CC; color: #9A7526; border-color: #E0CB93; }
 .weak-strong { background: #DCE8D2; color: #4C7038; border-color: #B9CFA6; }
 .roadmap-legend {
-  display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 10px 0 4px;
+  display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 0;
   font-size: 10.5px; color: #8A8270;
 }
 .roadmap-legend span { display: inline-flex; align-items: center; gap: 4px; }
@@ -626,13 +618,20 @@ body.mode-basic .q-level-badge.lv4 { background: #E8E8E6; color: #6A6A64; }
 .lg-low { background: #F6DCD3; border: 1px solid #E3B7A9; }
 .lg-mid { background: #F5E9CC; border: 1px solid #E0CB93; }
 .lg-strong { background: #DCE8D2; border: 1px solid #B9CFA6; }
-@media (max-width: 480px) { .weak-grid { grid-template-columns: repeat(3, 1fr); } }
+/* 狭い画面でも4列（7マスが2段に収まる）。正答率は2行目に回す */
+.weak-cell-acc { white-space: nowrap; }
+.weak-cell-acc::before { content: '・'; }
+@media (max-width: 480px) {
+  .weak-grid { gap: 5px; }
+  .weak-cell-name { font-size: 10.5px; white-space: nowrap; }
+  .weak-cell-sub { font-size: 9px; line-height: 1.25; }
+  .weak-cell-acc { display: block; }
+  .weak-cell-acc::before { content: none; }
+}
 /* レベル1ではアクセント色をグレーに寄せる（文字色も明示的に上書き） */
 body.mode-basic .roadmap-head b,
-body.mode-basic .roadmap-phase-focus b,
 body.mode-basic .roadmap-score b,
 body.mode-basic .roadmap-advice b { color: #5A5A55; }
-body.mode-basic .roadmap-phase-tag { background: #6E6E68; }
 body.mode-basic .roadmap-score-fill { background: #8F8F89; }
 body.mode-basic .roadmap-score-goal { background: #5A5A55; }
 body.mode-basic .weak-low { color: #5A5A55; }
@@ -1369,7 +1368,7 @@ body.pdf-popup-body { background: #181612; min-height: 0; }
   background: #EDEBE4; border-radius: 100px; padding: 3px 10px; }
 .pdf-row-state.on { color: #2E6B4F; background: #E2F0E7; }
 
-/* 合格ロードマップの開閉。畳んでも残り日数とPhaseは見えるようにしてある */
+/* 合格ロードマップの開閉。畳んでも今日のノルマは見えるようにしてある */
 .roadmap-toggle {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   width: 100%; padding: 0; margin: 0 0 2px; cursor: pointer;
@@ -1379,8 +1378,6 @@ body.pdf-popup-body { background: #181612; min-height: 0; }
 .roadmap-chev { font-size: 11px; color: #A8823C; flex: 0 0 auto; padding: 2px 6px; }
 .roadmap-toggle:hover .roadmap-chev { color: #9B3B2E; }
 body.mode-basic .roadmap-chev { color: #8A8270; }
-/* 畳んだときは下の余白を詰める */
-.roadmap-board.collapsed .roadmap-phase { margin-bottom: 0; }
 
 /* ===== トピック解説の出典（タイトル直下） =====
    もとは解説の末尾にあったが、「どの紙面の話か」を読む前に知りたいので上へ移した。
@@ -1502,28 +1499,28 @@ body.mode-basic .cite-page { background: #F1F1EE; border-color: #DADAD4; color: 
 }
 
 /* ===== レベル2完走のノルマ（毎日いちばん見る数字なので、畳んでも出す） ===== */
-.goal-pace { margin: 12px 0 4px; padding: 12px 14px; border-radius: 12px;
+.goal-pace { margin: 8px 0 2px; padding: 9px 12px; border-radius: 10px;
   background: linear-gradient(180deg, #FFF8E8 0%, #FDF3DF 100%);
   border: 1px solid #E4D5AE; }
 .goal-pace.cleared { background: linear-gradient(180deg, #EEF7EC 0%, #E4F1E0 100%); border-color: #BBD8B4; }
 .goal-pace.done { background: linear-gradient(180deg, #EEF7EC 0%, #E4F1E0 100%); border-color: #BBD8B4; text-align: center; }
-.goal-pace-head { font-size: 19px; font-weight: 700; color: #7A4A18; line-height: 1.35; }
-.goal-pace-head b { font-size: 26px; color: #9B3B2E; }
+.goal-pace-head { font-size: 17px; font-weight: 700; color: #7A4A18; line-height: 1.35; }
+.goal-pace-head b { font-size: 23px; color: #9B3B2E; }
 .goal-pace.cleared .goal-pace-head, .goal-pace.done .goal-pace-head { color: #2E6B4F; }
-.goal-pace-sub { margin-top: 3px; font-size: 12px; color: #6B6152; line-height: 1.7; }
+.goal-pace-sub { margin-top: 1px; font-size: 12px; color: #6B6152; line-height: 1.5; }
 .goal-pace-sub b { color: #7A4A18; }
-.goal-pace-bar { margin-top: 10px; height: 10px; border-radius: 100px; background: #EBE0C6; overflow: hidden; }
+.goal-pace-bar { margin-top: 7px; height: 8px; border-radius: 100px; background: #EBE0C6; overflow: hidden; }
 .goal-pace-fill { height: 100%; border-radius: 100px; background: linear-gradient(90deg, #C4703A, #A8823C);
   transition: width .4s ease; }
 .goal-pace.cleared .goal-pace-fill { background: linear-gradient(90deg, #4E9A70, #2E6B4F); }
-.goal-pace-meta { margin-top: 7px; display: flex; flex-wrap: wrap; gap: 4px 14px;
+.goal-pace-meta { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 4px 14px;
   font-size: 11px; color: #7A7263; }
 .goal-pace-meta b { color: #5B5346; font-size: 12px; }
-.goal-pace-track { margin-top: 6px; height: 4px; border-radius: 100px; background: #EBE0C6; overflow: hidden; }
+.goal-pace-track { margin-top: 5px; height: 4px; border-radius: 100px; background: #EBE0C6; overflow: hidden; }
 .goal-pace-track-fill { height: 100%; background: #A8823C; transition: width .4s ease; }
 .goal-pace.cleared .goal-pace-track-fill { background: #2E6B4F; }
 .goal-pace.cleared .goal-pace-bar, .goal-pace.cleared .goal-pace-track { background: #D4E6CE; }
-.goal-pace-outlook { margin-top: 8px; font-size: 11.5px; line-height: 1.7; }
+.goal-pace-outlook { margin-top: 6px; font-size: 11.5px; line-height: 1.6; }
 .goal-pace-outlook.ahead { color: #2E6B4F; }
 .goal-pace-outlook.behind { color: #8A5A2B; }
 /* ⚠ 数字の意味を持つ色なので、mode-basic でもグレーに落とさない（ヒートマップと同じ扱い） */
@@ -29850,7 +29847,7 @@ const SECTION_OF_QUESTION = {"「世界遺産とは、地球の品位を守る�
 // ビルド時に生成（tools/page_site_counts.json）。紙面の見出しの丸の上端の y（60dpi の画素）。
 const PAGE_SITE_ICONS = {"下100":[47],"下101":[48],"下102":[204],"下103":[48,272],"下104":[47],"下105":[47],"下106":[47,270],"下107":[49],"下108":[48],"下109":[46,269],"下110":[202],"下112":[47],"下113":[46],"下114":[46],"下116":[47],"下117":[48,271],"下118":[204],"下122":[48],"下124":[48],"下125":[48,271],"下126":[44,267],"下127":[46],"下128":[202],"下130":[48],"下131":[47],"下132":[48,270],"下133":[49,271],"下134":[48,271],"下135":[46],"下136":[202],"下140":[47],"下142":[47],"下143":[49],"下144":[47,270],"下145":[47],"下146":[47,270],"下147":[49],"下148":[46],"下149":[49],"下150":[204],"下154":[47],"下156":[47],"下158":[45],"下159":[48],"下16":[202],"下160":[47],"下161":[46,269],"下162":[47],"下163":[47],"下164":[48],"下165":[49,271],"下166":[48,271],"下167":[48],"下168":[203],"下172":[47],"下173":[47,270],"下174":[47,270],"下175":[47,269],"下176":[202],"下177":[48],"下178":[47],"下180":[47],"下181":[50,273],"下182":[48],"下183":[48],"下184":[203],"下185":[48],"下186":[48,271],"下187":[50,274],"下188":[46,268],"下189":[47,270],"下190":[46,269],"下191":[47,270],"下192":[203],"下196":[48],"下198":[48,271],"下199":[48,271],"下2":[378,426],"下20":[47],"下200":[48],"下202":[48],"下204":[47],"下205":[47],"下206":[203],"下208":[47],"下210":[46],"下211":[46],"下212":[47],"下213":[50],"下214":[49],"下215":[48],"下216":[203],"下217":[49,271],"下218":[48],"下219":[50,273],"下22":[48],"下220":[48],"下221":[47],"下222":[46],"下224":[202],"下228":[49],"下23":[49,271],"下230":[48],"下232":[49],"下233":[48,271],"下234":[47],"下236":[203],"下237":[48,271],"下238":[47],"下239":[47],"下24":[47,270],"下240":[203],"下242":[46],"下243":[48],"下244":[49],"下245":[48,271],"下246":[47],"下248":[48],"下249":[48],"下25":[47],"下250":[48],"下251":[49],"下252":[47],"下254":[48,271],"下255":[48,271],"下256":[48,271],"下257":[47],"下258":[203],"下26":[47,270],"下260":[48],"下262":[49],"下263":[48],"下264":[48],"下265":[49,272],"下266":[203],"下268":[48],"下269":[47],"下27":[47,270],"下270":[47],"下271":[46],"下272":[47],"下273":[48],"下274":[49],"下275":[47,270],"下276":[48,272],"下277":[50,272],"下278":[50,273],"下279":[48],"下28":[204],"下280":[204],"下282":[48],"下283":[49],"下284":[47,270],"下285":[47],"下286":[47,270],"下287":[47,269],"下288":[47,270],"下289":[47],"下290":[47],"下291":[48,271],"下292":[48],"下293":[48,271],"下294":[205],"下295":[49],"下296":[49],"下297":[49],"下298":[204],"下299":[49,272],"下304":[203],"下305":[47,270],"下306":[48],"下307":[47],"下308":[47,271],"下309":[49],"下310":[206],"下311":[271],"下312":[47],"下313":[49],"下314":[49],"下315":[49,272],"下316":[204],"下317":[47,270],"下318":[47],"下32":[47],"下320":[47],"下321":[47],"下322":[204],"下324":[49,272],"下325":[48],"下326":[205],"下327":[48],"下328":[47],"下329":[48,270],"下330":[48],"下331":[48,271],"下332":[204],"下333":[47],"下334":[47],"下335":[48],"下336":[48,270],"下337":[47,270],"下338":[203],"下34":[46,269],"下340":[48],"下341":[49],"下342":[50],"下343":[49],"下344":[49],"下345":[48],"下346":[49],"下347":[49],"下348":[48],"下35":[48],"下350":[47],"下351":[47],"下352":[47],"下353":[47],"下354":[204],"下355":[47],"下356":[49,272],"下357":[50],"下358":[50],"下36":[49,272],"下360":[49],"下361":[48],"下362":[49],"下363":[49],"下364":[205],"下365":[47,270],"下366":[47],"下367":[46],"下368":[203],"下369":[47],"下37":[46,269],"下370":[48,270],"下371":[47,270],"下372":[48],"下374":[50,273],"下375":[49],"下376":[49,272],"下377":[49,272],"下378":[50,272],"下379":[49,272],"下38":[46],"下380":[204],"下381":[47],"下382":[47],"下384":[48,271],"下385":[46],"下386":[47,270],"下387":[46],"下388":[48],"下389":[50,273],"下39":[49],"下390":[50,273],"下391":[49,271],"下392":[49],"下393":[48],"下394":[49,272],"下395":[50,273],"下396":[49],"下397":[47],"下398":[203],"下399":[46],"下40":[48,271],"下400":[47,271],"下401":[47,270],"下402":[48,271],"下403":[46],"下404":[48,271],"下405":[51,273],"下406":[207],"下407":[48],"下408":[48],"下409":[49,273],"下41":[48,270],"下410":[206],"下411":[49],"下412":[49],"下413":[47],"下414":[47,270],"下415":[47],"下416":[48],"下417":[48,271],"下418":[205],"下419":[48],"下42":[46,269],"下420":[50,273],"下421":[48],"下422":[50],"下423":[48,271],"下424":[49,272],"下425":[48],"下426":[48,271],"下427":[48],"下428":[48,271],"下429":[49,272],"下43":[46,269],"下430":[48],"下431":[47,270],"下432":[204],"下433":[47],"下434":[48],"下435":[48],"下436":[49],"下437":[49],"下438":[51,274],"下439":[49],"下44":[47],"下440":[50],"下441":[49,272],"下442":[50,272],"下443":[49],"下444":[50],"下445":[47],"下448":[203],"下450":[48],"下451":[48],"下452":[205],"下454":[51],"下455":[48],"下456":[204],"下458":[49],"下459":[51],"下46":[48],"下460":[205],"下461":[47],"下462":[204],"下464":[49],"下466":[49],"下467":[47],"下468":[205],"下47":[46,269],"下470":[50],"下472":[49,272],"下473":[49],"下474":[206],"下475":[50],"下476":[50],"下477":[47],"下478":[204],"下479":[47],"下48":[202],"下480":[48],"下481":[48,271],"下482":[48],"下483":[46],"下50":[47],"下51":[49],"下52":[47],"下53":[47],"下54":[47,270],"下55":[49,272],"下56":[47,232,356],"下57":[48,271],"下58":[203],"下60":[47],"下61":[48,233,357],"下62":[47,232,356],"下63":[48,271],"下64":[202],"下66":[48],"下67":[47],"下68":[47,269],"下69":[48,271],"下70":[48],"下71":[47],"下72":[47],"下73":[48,270],"下74":[46,269],"下75":[49,272],"下76":[47,233,357],"下77":[47],"下78":[203],"下80":[47],"下82":[46],"下83":[270],"下84":[47],"下85":[48],"下86":[48],"下87":[49],"下88":[48],"下89":[49],"下90":[47],"下91":[49],"下92":[47,270],"下93":[47],"下94":[47],"下95":[47,270],"下96":[47,270],"下97":[48],"下98":[204],"下99":[47,270],"中100":[50],"中101":[48,271],"中102":[48,272],"中103":[48,271],"中104":[204],"中108":[48,271],"中109":[48,271],"中110":[48],"中112":[48],"中113":[48,271],"中114":[203],"中116":[49],"中118":[50],"中119":[49,271],"中120":[49,271],"中121":[48,271],"中122":[48],"中123":[50,273],"中124":[48],"中125":[48,233,357],"中126":[203],"中130":[48],"中131":[48,271],"中132":[48],"中133":[48],"中134":[205],"中136":[49],"中137":[49],"中138":[49,272],"中139":[48,271],"中140":[49,272],"中141":[47,270],"中142":[48],"中143":[47],"中144":[47],"中145":[46,269],"中146":[47,233,356],"中147":[48,271],"中148":[203],"中150":[50,273],"中151":[49,235,359],"中152":[204],"中154":[49,272],"中155":[49,272],"中156":[49,271],"中157":[47,269],"中158":[202],"中159":[47],"中160":[47,270],"中161":[48,271],"中162":[47,270],"中163":[47,270],"中164":[48,271],"中165":[49,272],"中166":[205],"中167":[48],"中168":[48,271],"中169":[48,271],"中170":[48,271],"中171":[50,273],"中172":[48],"中173":[48,272],"中174":[203],"中175":[47,269],"中176":[47,270],"中177":[47,270],"中178":[203],"中179":[47,270],"中18":[203],"中180":[48,271],"中181":[48,271],"中182":[49],"中183":[48,271],"中184":[204],"中185":[48,271],"中186":[48,272],"中187":[49,272],"中188":[204],"中190":[47],"中191":[46],"中192":[47],"中193":[47,270],"中194":[47,270],"中195":[48,271],"中196":[50,273],"中197":[47,270],"中198":[47,270],"中199":[48,233,357],"中2":[378,426],"中200":[203],"中202":[47],"中203":[47,270],"中204":[47,270],"中205":[48],"中206":[48],"中207":[48,271],"中208":[204],"中209":[48],"中210":[47,270],"中211":[48,270],"中212":[48,271],"中213":[49,272],"中214":[203],"中215":[49],"中216":[47,271],"中217":[49,272],"中218":[48,270],"中219":[48],"中22":[51,274],"中220":[203],"中221":[48,271],"中222":[48],"中223":[47],"中224":[48,272],"中225":[47],"中226":[48,271],"中227":[48,272],"中228":[48],"中229":[48,271],"中23":[49,272],"中230":[48],"中231":[48,271],"中232":[47,270],"中233":[48,271],"中234":[48,271],"中235":[48,271],"中236":[49,272],"中237":[48],"中238":[48],"中239":[48,270],"中24":[50],"中240":[48,271],"中242":[203],"中244":[49],"中246":[48],"中248":[47],"中249":[47],"中25":[50],"中250":[48],"中251":[49,271],"中252":[49,271],"中253":[48,271],"中254":[203],"中256":[48,272],"中257":[48],"中258":[48,270],"中259":[48],"中26":[48,271],"中260":[48,271],"中261":[49,271],"中262":[203],"中264":[48],"中265":[47,270],"中266":[48,234,357],"中267":[48],"中268":[204],"中269":[47,270],"中27":[50,273],"中270":[49,271],"中271":[48,234,358],"中272":[204],"中274":[47,270],"中275":[48],"中276":[48,271],"中277":[49,234,358],"中278":[203],"中279":[48,271],"中28":[50,273],"中280":[47,270],"中281":[48,271],"中282":[204],"中284":[48],"中285":[47],"中286":[49,272],"中287":[48,233,357],"中288":[204],"中289":[48,233,357],"中29":[47,233,357],"中290":[203],"中291":[48,270],"中292":[48],"中293":[49,271],"中294":[205],"中295":[47],"中296":[48],"中297":[48,270],"中298":[48],"中299":[48,271],"中30":[47],"中300":[204],"中301":[47,270],"中302":[48,271],"中303":[47,270],"中304":[47,270],"中305":[46,232,356],"中306":[202],"中308":[48,271],"中309":[48,234,358],"中31":[46,269],"中310":[204],"中312":[48,271],"中313":[48,271],"中314":[49],"中315":[49,271],"中316":[49,272],"中317":[47,270],"中318":[48],"中32":[47,270],"中320":[204],"中322":[47,270],"中323":[47,270],"中324":[48],"中325":[48],"中326":[204],"中327":[48,271],"中328":[48,271],"中329":[48,271],"中33":[47,270],"中330":[49,272],"中331":[48,271],"中332":[48],"中333":[48],"中334":[49],"中335":[47],"中336":[48,271],"中337":[47,270],"中338":[48],"中34":[49,272],"中340":[48,271],"中341":[50,273],"中342":[51,273],"中344":[205],"中345":[49,272],"中346":[49],"中348":[49,272],"中349":[47,233,357],"中35":[47,270],"中350":[203],"中352":[47],"中353":[47],"中354":[48],"中355":[48,271],"中356":[49],"中357":[48],"中358":[205],"中36":[49,272],"中360":[48],"中361":[48,271],"中362":[48,271],"中363":[48,234,357],"中364":[48,271],"中365":[48,271],"中366":[48],"中367":[47],"中368":[205],"中37":[48,271],"中370":[48],"中371":[47],"中372":[48],"中373":[50,273],"中374":[207],"中375":[49,235,358],"中376":[205],"中378":[48,272],"中379":[49,272],"中38":[205],"中380":[48],"中381":[48,271],"中382":[48,271],"中383":[47,270],"中384":[47,270],"中385":[48],"中386":[203],"中388":[49],"中389":[48],"中390":[49,272],"中391":[49],"中392":[48,271],"中393":[48,271],"中394":[48,271],"中395":[49,272],"中396":[48],"中397":[48,270],"中398":[47,271],"中399":[47,269],"中40":[48],"中400":[204],"中401":[47,270],"中402":[48],"中403":[47],"中404":[49,272],"中405":[47,233,357],"中406":[204],"中407":[49,271],"中408":[48,271],"中409":[48,271],"中41":[48,270],"中410":[206],"中411":[48],"中412":[48,271],"中413":[48,271],"中414":[47,270],"中415":[47,270],"中416":[204],"中417":[47,270],"中418":[47],"中419":[47],"中42":[48,271],"中420":[49,272],"中421":[48],"中422":[205],"中424":[48],"中425":[48],"中426":[48],"中427":[48,272],"中428":[48],"中43":[48,272],"中430":[204],"中432":[48,271],"中433":[47,269],"中434":[203],"中436":[48],"中438":[50],"中439":[49,271],"中44":[48,270],"中440":[49],"中441":[48],"中442":[49],"中443":[49,272],"中444":[204],"中446":[47],"中448":[47,270],"中449":[47,270],"中45":[48,234,357],"中450":[49,271],"中451":[47],"中452":[48],"中453":[49,272],"中454":[50,272],"中455":[48,271],"中456":[204],"中458":[48],"中459":[48,271],"中46":[48,234,357],"中460":[48,271],"中461":[47,232,356],"中462":[47],"中463":[47],"中464":[48],"中465":[46,269],"中466":[203],"中468":[47],"中469":[51,237,360],"中47":[47],"中470":[52,275],"中471":[50,272],"中472":[50],"中473":[49,272],"中474":[51],"中475":[50],"中476":[50,236,359],"中477":[46,268],"中478":[46],"中48":[48,271],"中480":[46],"中481":[46,269],"中482":[47,270],"中483":[47,233,357],"中49":[47,233,357],"中50":[47],"中52":[49],"中53":[48],"中54":[49,272],"中55":[50,273],"中56":[205],"中60":[47],"中62":[47],"中63":[47,270],"中64":[48,271],"中65":[48,271],"中66":[48],"中68":[50,272],"中69":[48,234,357],"中70":[205],"中74":[48],"中75":[48],"中76":[48,271],"中77":[49,272],"中78":[48,234,358],"中79":[48,271],"中80":[48],"中81":[48,271],"中82":[48],"中84":[49],"中85":[47,270],"中86":[204],"中87":[48],"中88":[47,270],"中89":[48,272],"中90":[48,271],"中91":[48,271],"中92":[203],"中94":[48],"中95":[48,271],"中96":[48],"中98":[48],"中99":[48,271]};
 
-const BUILD_STAMP = "2026-10-28 08:38";
+const BUILD_STAMP = "2026-11-06 06:58";
 
 
 
@@ -37470,7 +37467,6 @@ function computePriorityBoard() {
 
 // ===== 合格ロードマップ + 弱点ヒートマップ（第66回・目標160点） =====
 // docs/STUDY_PLAN_66.md の設計をアプリ側に可視化したもの。
-//  ・今日の日付から現在のPhaseを自動判定して「今やること」を出す
 //  ・配点換算の推定到達度（totalMastery）を 200点満点に換算し、
 //    目標160点まで「あと何点」を示す。あくまでアプリ内の解答実測ベースの目安
 //  ・分野／地域別の弱点をヒートマップで色分けし、セルを押すとその範囲の
@@ -37481,7 +37477,8 @@ function computePriorityBoard() {
 // レベル1選択中にレベル1の問題を完答しただけで推定点が200点に張り付いてしまい、
 // 本番は上位レベル相当も出るという実態と食い違うため（レベル1を完答しても実際は160点に届かない）。
 // 出題レベルが実際に効くのは、クリック後のドリル（openWeaknessDrill）が出す問題の範囲だけ。
-const EXAM_66 = { exam: new Date(2026, 11, 13), cbt: new Date(2026, 10, 29), target: 160, fullMark: 200 };
+// CBT開始（11/29）は持たない。利用者は12/13の会場試験を受けるので、意味を持つのは試験日だけ（2026/11/5・利用者指示）
+const EXAM_66 = { exam: new Date(2026, 11, 13), target: 160, fullMark: 200 };
 
 // ===== レベル1完走のノルマ（`computeGoalPace()` / `renderGoalPace()`）=====
 // 「試験の1ヶ月前までにレベル1を終わらせる」を、毎日の問題数に落として出す。
@@ -37517,8 +37514,8 @@ function computeGoalPace() {
   const deadline = goalDeadline();
   const daysLeft = Math.round((deadline - today) / DAY) + 1;      // 今日を含む
   const overdue = daysLeft <= 0;
-  // 目標日を過ぎたら、CBT開始までを新しい持ち時間にする（そこで諦めさせない）
-  const horizon = overdue ? Math.max(1, Math.round((EXAM_66.cbt - today) / DAY) + 1) : daysLeft;
+  // 目標日を過ぎたら、試験日（12/13）の前日までを新しい持ち時間にする（そこで諦めさせない）
+  const horizon = overdue ? Math.max(1, Math.round((EXAM_66.exam - today) / DAY)) : daysLeft;
 
   const doneToday = (progress.dailyStats[todayKey()] || {}).g1 || 0;
   // ★1日のノルマは「今日の始まりの残り」から決める（2026/9/14に修正）。
@@ -37597,7 +37594,7 @@ function renderGoalPace() {
   }
 
   const overdueNote = g.overdue
-    ? '<div class="goal-pace-outlook behind">目標日（' + md + '）は過ぎました。CBT開始までを持ち時間に切り替えています。</div>'
+    ? '<div class="goal-pace-outlook behind">目標日（' + md + '）は過ぎました。試験日の前日までを持ち時間に切り替えています。</div>'
     : '';
 
   return '<div class="goal-pace' + (cleared ? ' cleared' : '') + '">' +
@@ -37614,21 +37611,6 @@ function renderGoalPace() {
     outlook + overdueNote +
   '</div>';
 }
-const ROADMAP_PHASES = [
-  { end: new Date(2026, 8, 15), no: 1, label: 'Phase 1・土台の固め',
-    focus: '配点の重い<b>基礎知識＋日本</b>を先に90%へ。まず足場を固める。' },
-  { end: new Date(2026, 10, 3), no: 2, label: 'Phase 2・世界の遺産',
-    focus: '<b>世界の遺産</b>を地域ごとに広く。160点への+23点はここで取る。' },
-  { end: new Date(2026, 10, 29), no: 3, label: 'Phase 3・弱点の刈り取り',
-    focus: '<b>2周目→3周目</b>と時事の総ざらい。落としている所を潰す。' },
-  { end: new Date(2027, 0, 1), no: 4, label: 'Phase 4・CBT本番ウィンドウ',
-    focus: '<b>11/29からCBT受験可</b>。模擬計測で安定して150点超なら受験。' },
-];
-function getRoadmapPhase(today) {
-  for (const p of ROADMAP_PHASES) { if (today < p.end) return p; }
-  return ROADMAP_PHASES[ROADMAP_PHASES.length - 1];
-}
-
 const WEAK_SEGMENTS = [
   { key: '基礎', label: '基礎知識', cats: ['基礎知識'] },
   { key: '日本', label: '日本', cats: ['日本_文化遺産', '日本_自然遺産'] },
@@ -37737,8 +37719,6 @@ function renderRoadmapBoard() {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const day = 1000 * 60 * 60 * 24;
   const daysToExam = Math.round((EXAM_66.exam - today) / day);
-  const daysToCbt = Math.round((EXAM_66.cbt - today) / day);
-  const phase = getRoadmapPhase(today);
 
   const { rows: priRows, totalMastery } = computePriorityBoard();
   const estScore = Math.round((totalMastery / 100) * EXAM_66.fullMark); // 200点換算
@@ -37746,21 +37726,20 @@ function renderRoadmapBoard() {
   const scorePct = Math.min(100, Math.round((estScore / EXAM_66.target) * 100));
   const topPri = priRows[0]; // 配点(基礎25%/日本20%/世界55%)×伸びしろで最優先の1分野
 
-  // ヘッダー（試験までの残り日数と現在のPhase）
-  let head;
-  if (daysToExam > 0) {
-    head = '第66回まで残り <b>' + daysToExam + '</b> 日' +
-      (daysToCbt > 0 ? '（CBT開始まで ' + daysToCbt + ' 日）' : '（CBT受験期間中）');
-  } else if (daysToExam === 0) {
+  // 残り日数は画面の一番上（#examCountdown）に出ているので、ここでは試験日当日と終了後だけ一言出す。
+  // CBT開始（11/29）とPhaseの表示は外した（2026/11/5・利用者指示「CBT開始までって何か意味あります？
+  // なければ消しましょう。その下にPhaseの記載もあるのでこれも削除しましょう」）
+  let head = '';
+  if (daysToExam === 0) {
     head = '今日が試験日。ここまでの積み重ねを信じて。';
-  } else {
+  } else if (daysToExam < 0) {
     head = '第66回は終了しました。';
   }
 
   const cells = computeWeaknessBoard().map(r => {
     const cls = weakCellClass(r);
     const mv = r.answered ? Math.round(r.mastery * 100) + '%' : '—';
-    const accText = r.answered ? '・正答' + Math.round(r.accuracy * 100) + '%' : '';
+    const accText = r.answered ? '<span class="weak-cell-acc">正答' + Math.round(r.accuracy * 100) + '%</span>' : '';
     return '<button class="weak-cell ' + cls + '" data-seg="' + r.key + '">' +
       '<span class="weak-cell-name">' + r.label + '</span>' +
       '<span class="weak-cell-val">' + mv + '</span>' +
@@ -37813,9 +37792,7 @@ function renderRoadmapBoard() {
       '<span class="story-eyebrow">🗺 合格ロードマップ（第66回・目標160点）</span>' +
       '<span class="roadmap-chev">' + (roadmapOpen ? '▲' : '▼') + '</span>' +
     '</button>' +
-    '<div class="roadmap-head">' + head + '</div>' +
-    '<div class="roadmap-phase"><span class="roadmap-phase-tag">' + phase.label + '</span>' +
-      '<span class="roadmap-phase-focus">' + phase.focus + '</span></div>' +
+    (head ? '<div class="roadmap-head">' + head + '</div>' : '') +
     renderGoalPace() +
     (roadmapOpen ? (
     streakLine +
@@ -38673,8 +38650,7 @@ function unmaskPlainYears(html) {
 //   **レベル1・2をその向きに純化する**という意味であり、逆向きの設問を捨てる意味ではない。
 //   4段階にすることで、逆向きの設問は独立した第3層として生き、レベル1・2は汚れない。
 // 合格ロードマップの開閉。ホーム最上部を占めるカードなので、日々の学習では
-// 畳んでおきたいという要望による。畳んでも「試験までの残り日数」と現在のPhaseだけは
-// 見えるようにしてある——ここが畳めると、そもそも何のためのカードか分からなくなるため。
+// 畳んでおきたいという要望による。畳んでも今日のノルマ（renderGoalPace）は出す。
 const ROADMAP_KEY = 'roadmap_open';
 let roadmapOpen = true;
 try { const v = localStorage.getItem(ROADMAP_KEY); if (v !== null) roadmapOpen = v === '1'; } catch (e) {}
